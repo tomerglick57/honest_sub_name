@@ -55,6 +55,25 @@ sub would be the bottleneck; instead each sub is reduced to a short evidence she
 concentration, flair mix). Distinctive terms use log-odds with an informative
 Dirichlet prior (Monroe, Colaresi & Quinn 2008).
 
+## Model
+
+`google/gemma-4-26b-a4b-qat` served by **LM Studio on the Windows host**, so the
+GPU is driven natively rather than through WSL's CUDA layer. Reached over LM
+Studio's OpenAI-compatible server on port 1234.
+
+Two things about this setup are worth writing down, because neither is obvious:
+
+**Reaching the host from WSL.** With `networkingMode=nat` and `firewall=true` in
+`.wslconfig`, the WSL default gateway (`172.23.96.1`) is blocked even though LM
+Studio binds `0.0.0.0`. The host's **LAN address** works. That address is
+DHCP-assigned, so `llm.py` enumerates the host's interfaces via `ipconfig.exe`
+and caches whichever one answers rather than hard-coding it.
+
+**Gemma 4 is a reasoning model.** It emits `reasoning_content` alongside
+`content` and spends part of `max_tokens` on it. Too small a budget returns an
+empty `content` string with `finish_reason: "length"` and no error — so the
+client treats that case as a failure rather than passing empty output downstream.
+
 ## Pilot result
 
 720 posts/sub, 6 quarterly windows, ~5 s per subreddit:
@@ -68,5 +87,10 @@ Dirichlet prior (Monroe, Colaresi & Quinn 2008).
 ## Run
 
 ```bash
-python3 scripts/pilot.py     # harvests 3 subs into data/raw/
+python3 scripts/harvest_all.py   # top 100 subs + r/Palestine + r/Israel -> data/raw/
+python3 scripts/analyze_all.py   # -> data/sheets/*.md and data/out/honest_names.jsonl
 ```
+
+Both are resumable: `harvest_all.py` skips subs already in
+`data/meta/harvest_log.jsonl`, and `analyze_all.py` skips subs already in
+`honest_names.jsonl`.

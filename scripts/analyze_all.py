@@ -1,5 +1,5 @@
 """Turn every harvested subreddit into an honest name. Resumable."""
-import json, pathlib, sys, time, traceback
+import atexit, json, os, pathlib, sys, time, traceback
 from collections import Counter
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
@@ -9,12 +9,37 @@ from honest_sub.name import name_subreddit
 from honest_sub.llm import LMStudio
 from honest_sub.corpus import completed, path_for, targets_meta
 
+LOCK = pathlib.Path("data/out/.analyze.lock")
 OUT = pathlib.Path("data/out"); OUT.mkdir(parents=True, exist_ok=True)
+
+
+def acquire_lock() -> None:
+    """Refuse to start if another run holds the lock.
+
+    Two concurrent runs append to the same results file and duplicate every
+    model call, so this is a hard stop rather than a warning.
+    """
+    if LOCK.exists():
+        try:
+            pid = int(LOCK.read_text().strip())
+        except (ValueError, OSError):
+            pid = None
+        if pid is not None:
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                pass  # stale lock from a killed run
+            else:
+                sys.exit(f"analyze_all.py already running as pid {pid}; "
+                         f"remove {LOCK} if that is wrong")
+    LOCK.write_text(str(os.getpid()))
+    atexit.register(lambda: LOCK.unlink(missing_ok=True))
 SHEETS = pathlib.Path("data/sheets"); SHEETS.mkdir(parents=True, exist_ok=True)
 RESULTS = OUT / "honest_names.jsonl"
 
 
 def main():
+    acquire_lock()
     subs = completed()
     meta = targets_meta()
     print(f"profiling {len(subs)} subreddits…", flush=True)
@@ -37,9 +62,12 @@ def main():
     if RESULTS.exists():
         for ln in RESULTS.read_text().splitlines():
             try:
-                done.add(json.loads(ln)["subreddit"])
-            except (json.JSONDecodeError, KeyError):
-                pass
+                r = json.loads(ln)
+            except json.JSONDecodeError:
+                continue
+            # rows that errored are left out of `done` so they get retried
+            if "subreddit" in r and not r.get("error"):
+                done.add(r["subreddit"])
 
     lm = LMStudio()
     todo = [s for s in subs if s not in done]
