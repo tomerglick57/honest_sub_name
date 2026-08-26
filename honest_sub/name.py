@@ -12,8 +12,10 @@ actually is in practice, as opposed to what its name and sidebar claim.
 Rules:
 - Ground every judgement in the numbers on the sheet. Never invent a statistic.
 - The honest name is only interesting when it DIFFERS from the literal name. If
-  the sub does what it says, set gap_severity to "none". A boring accurate
-  verdict is far more valuable than a manufactured controversy.
+  the sub does what it says, say so plainly. A boring accurate verdict is far
+  more valuable than a manufactured controversy.
+- You are NOT asked to rate how severe the gap is. That is measured separately
+  from the removal statistics. Describe what the community is; do not grade it.
 - Even when gap_severity is "none", the honest name must still be DESCRIPTIVE.
   Never answer with the subreddit's own name, and never prefix it with "r/".
   For an accurate sub, describe what it is: r/aww -> "Cute Animal Photo Feed",
@@ -50,11 +52,6 @@ SCHEMA = {
             "type": "string",
             "description": "Two or three sentences on what this community actually is",
         },
-        "gap_severity": {
-            "type": "string",
-            "enum": ["none", "mild", "moderate", "severe"],
-            "description": "How far the reality is from what the name implies",
-        },
         "gap_summary": {
             "type": "string",
             "description": "One sentence: the difference between claim and reality",
@@ -77,7 +74,7 @@ SCHEMA = {
             "description": "how well the sheet supports this verdict",
         },
     },
-    "required": ["honest_name", "honest_description", "gap_severity",
+    "required": ["honest_name", "honest_description",
                  "gap_summary", "evidence", "what_gets_removed", "confidence"],
     "additionalProperties": False,
 }

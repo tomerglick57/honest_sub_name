@@ -9,6 +9,8 @@ from honest_sub.name import name_subreddit
 from honest_sub.llm import LMStudio
 from honest_sub.corpus import completed, path_for, targets_meta
 
+GAPS = pathlib.Path("data/meta/gap_scores.json")
+
 LOCK = pathlib.Path("data/out/.analyze.lock")
 OUT = pathlib.Path("data/out"); OUT.mkdir(parents=True, exist_ok=True)
 
@@ -69,6 +71,13 @@ def main():
             if "subreddit" in r and not r.get("error"):
                 done.add(r["subreddit"])
 
+    gaps = {}
+    if GAPS.exists():
+        gaps = {g["subreddit"]: g for g in json.load(open(GAPS))}
+    else:
+        print("WARNING: no gap_scores.json; run scripts/score_gaps.py first",
+              file=sys.stderr)
+
     lm = LMStudio()
     todo = [s for s in subs if s not in done]
     print(f"{len(done)} already named, {len(todo)} to go\n", flush=True)
@@ -80,16 +89,23 @@ def main():
             t0 = time.time()
             try:
                 r = name_subreddit(lm, sheet)
+                g = gaps.get(s, {})
                 r.update(subreddit=s, subscribers=meta.get(s, {}).get("subscribers"),
                          posts=profs[s]["posts"],
                          mod_removal_rate=profs[s]["mod_removal_rate"],
+                         # measured, not asked of the model
+                         gap_severity=g.get("gap_severity", "unrated"),
+                         gap_score=g.get("gap_score"),
+                         identity_match=g.get("identity_match"),
                          seconds=round(time.time() - t0, 1))
             except Exception as e:
                 traceback.print_exc()
                 r = {"subreddit": s, "error": f"{type(e).__name__}: {e}"}
             fh.write(json.dumps(r, ensure_ascii=False) + "\n"); fh.flush()
             tag = r.get("honest_name", "ERROR")
-            print(f"[{i}/{len(todo)}] r/{s:26} → {tag}  ({r.get('seconds','?')}s)", flush=True)
+            sev = r.get("gap_severity", "?")
+            print(f"[{i}/{len(todo)}] r/{s:24} [{sev:8}] → {tag}  "
+                  f"({r.get('seconds','?')}s)", flush=True)
 
 
 if __name__ == "__main__":

@@ -74,6 +74,69 @@ and caches whichever one answers rather than hard-coding it.
 empty `content` string with `finish_reason: "length"` and no error — so the
 client treats that case as a failure rather than passing empty output downstream.
 
+## Severity is measured, not asked
+
+Asking the model to rate `gap_severity` did not survive contact with the data.
+Across two runs on identical input, **23 of 100 verdicts changed**. r/stocks
+swung from `none`/`moderate` at temperature 0.3 to `severe` at temperature 0.0.
+Determinism did not rescue it: temperature 0 was stable but *wrong*, rating
+r/Fitness `none` while it removes 77% of posts, targeting `help`, `weight`,
+`muscle`, `gym`.
+
+Part of that instability was our own fault — see the reproducibility note below.
+
+`gap.py` therefore derives severity from two reproducible quantities:
+
+    gap_score = sqrt(removal_rank × identity_rank)
+
+`removal_rank` is how heavily a sub's moderators remove; `identity_rank` is how
+closely what they remove resembles what the sub claims to be, by embedding
+similarity between the sidebar text and the distinctive vocabulary of removed
+posts. Both are percentile ranks within the cohort, since cosine similarity over
+short texts occupies a narrow band. A geometric mean is used so that a gap needs
+*both* terms — either alone is unremarkable.
+
+Removing off-topic content scores low, which is moderation working as intended
+(r/worldnews, 0.13 — it removes `stabbing`, `synagogue`). Removing your own
+subject scores high (r/Fitness 0.91, r/stocks 0.94).
+
+### Where this metric is wrong
+
+**It over-fires on about 30% of what it flags.** Of 37 subs scored
+severe/moderate, 11 have descriptions in which the model states the community
+does what its name says. The metric cannot separate two things:
+
+- *strict gatekeeping within an honest topic* — r/books removes "help me find a
+  book" requests but is still a books forum; the name is honest
+- *the sub not being what its name says* — r/nosleep removes claims of being
+  true, because it is fiction; r/AmItheAsshole advertises moral philosophy and
+  delivers interpersonal drama
+
+Both produce heavy removal of on-topic-looking vocabulary. Distinguishing them
+needs to know whether the removed content would be *expected* under the name,
+which is a semantic judgement the score does not make. Treat `gap_score` as a
+**screen for what to look at**, not a verdict, and surface the disagreement
+between the score and the description rather than hiding it behind one number.
+
+**It measures gatekeeping, not slant.** It does not detect ideological capture,
+the case that motivated the project. Those subs score low: r/Israel 0.33,
+r/Palestine 0.24, r/TwoXChromosomes 0.08. Slant would need a different signal —
+asymmetric removal across competing positions, not removal volume.
+
+## Reproducibility
+
+`log_odds_prior` iterated a Python `set`. String hash randomisation varies per
+process, so tie-breaking in the sort reshuffled the distinctive-vocabulary lists
+**between runs on identical data**, making every evidence sheet subtly different
+and the whole pipeline non-reproducible. Fixed by iterating `sorted()` and
+breaking ties on the word itself; verified identical across three processes.
+
+The `confidence` field is currently useless: it returns `high` for all 100 subs.
+An earlier `number` version was worse — the model answered on a 1-5 scale in 73
+of 100 rows, and adding `minimum`/`maximum` changed nothing, because LM Studio's
+constrained decoding enforces types and enum membership but not numeric bounds.
+Drop the field or calibrate it; do not trust it.
+
 ## Pilot result
 
 720 posts/sub, 6 quarterly windows, ~5 s per subreddit:

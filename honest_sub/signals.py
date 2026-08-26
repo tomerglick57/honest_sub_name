@@ -48,7 +48,10 @@ def _toks(text: str) -> list[str]:
 def log_odds_prior(target: Counter, background: Counter, alpha_scale: float = 0.01,
                    min_count: int = 5, top: int = 40) -> list[tuple[str, float, int]]:
     """Words most distinctive of `target` vs `background`, z-scored."""
-    vocab = set(target) | set(background)
+    # sorted(): set iteration order varies per process under Python's string
+    # hash randomisation, which reshuffles ties and made the whole pipeline
+    # non-reproducible across runs on identical data
+    vocab = sorted(set(target) | set(background))
     a0 = sum(background.values()) * alpha_scale
     n_t, n_b = sum(target.values()), sum(background.values())
     out = []
@@ -66,7 +69,7 @@ def log_odds_prior(target: Counter, background: Counter, alpha_scale: float = 0.
         delta = math.log(num_t / d_t) - math.log(num_b / d_b)
         var = 1.0 / num_t + 1.0 / num_b
         out.append((w, delta / math.sqrt(var), y_t))
-    out.sort(key=lambda r: -r[1])
+    out.sort(key=lambda r: (-r[1], r[0]))  # break score ties on the word itself
     return out[:top]
 
 
