@@ -123,6 +123,62 @@ the case that motivated the project. Those subs score low: r/Israel 0.33,
 r/Palestine 0.24, r/TwoXChromosomes 0.08. Slant would need a different signal —
 asymmetric removal across competing positions, not removal volume.
 
+## Slant: asymmetric moderation (prototype, underpowered)
+
+`slant.py` asks the different question `gap.py` cannot: are competing positions
+moderated evenly? Stance is classified by the language model, then removal rates
+are compared across sides.
+
+**Embeddings cannot do this.** On a probe set, "Trump is a hero who saved
+America" and "Trump is a criminal who destroyed democracy" projected to -0.0098
+and -0.0096 on a left/right axis: indistinguishable, 2/6 accuracy, chance.
+Sentence embeddings encode topic, not stance. Axis projection would have
+produced clean-looking asymmetry numbers that were pure noise.
+
+**Temperature 0 does not work here.** Greedy decoding sends the model into
+degenerate reasoning loops: at 0.0 and 0.2 it spent a full 12k budget and
+emitted nothing; at 0.6 it answered in 32s. Labels are therefore sampled, and
+their stability measured: 89% identical across three passes, majority in 36/36.
+
+### Validation
+
+| check | result |
+|---|---|
+| label stability, 3 passes | 89% identical |
+| r/Conservative left-share of sided posts | 22% |
+| r/democrats left-share of sided posts | 94% |
+| Fisher implementation vs scipy, 400 tables | max error 1.5e-13 |
+
+The classifier is explicitly forbidden from using the source subreddit as a cue,
+so the 72-point separation is a real test rather than a tautology.
+
+### Results — no conclusion is supported
+
+| sub | odds ratio | Fisher p | power for OR=2 |
+|---|---|---|---|
+| r/politics | 0.35 (right removed more) | 0.033 | 26% |
+| r/Conservative | 1.99 (left removed more) | 0.069 | 46% |
+| r/conspiracy | 1.23 | 0.778 | 21% |
+
+**The positive control did not reach significance.** r/Conservative is a
+flaired-users-only sub that visibly removes left-leaning content, and the method
+could not confirm it at p<0.05. That makes this a power problem, not a set of
+findings. With three tests the Bonferroni threshold is 0.0167 and **nothing
+survives it**, r/politics included.
+
+The r/conspiracy null is uninformative: at 21 left and 36 right sided posts,
+there is 21% power to detect a doubling of removal odds -- it would be missed
+four times in five. Separately, 46% of its sampled posts were labelled as not
+about US politics at all, so the partisan axis fits only part of that community.
+
+One confound was tested and does not explain the r/politics result: removed
+posts are ~21% mainstream-sourced and kept posts ~38%, *identically for both
+stances*, so source-quality rules bear on each side equally.
+
+Reaching 80% power for OR=2 needs roughly 200 sided posts per side. At the
+observed ~9% sided rate that is ~4,400 classifications per subreddit, about four
+hours each on this hardware.
+
 ## Reproducibility
 
 `log_odds_prior` iterated a Python `set`. String hash randomisation varies per
