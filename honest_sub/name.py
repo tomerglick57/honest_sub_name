@@ -1,6 +1,10 @@
 """Ask the local model for an honest name, grounded in the evidence sheet."""
 from __future__ import annotations
 
+import json
+
+from .llm import Truncated
+
 SYSTEM = """\
 You are a research analyst characterising online communities. You are given a
 statistical evidence sheet about one subreddit: what it says it is, what gets
@@ -96,9 +100,7 @@ def name_subreddit(lm, sheet: str, max_tokens: int = 8000,
         try:
             return lm.chat_json(SYSTEM, sheet, SCHEMA,
                                 max_tokens=budget, temperature=0.3)
-        except RuntimeError as e:
-            if "went to reasoning" not in str(e):
-                raise
+        except (Truncated, json.JSONDecodeError) as e:
             last = e
             budget *= 2
     raise RuntimeError(f"still overrunning at {budget // 2} tokens: {last}")

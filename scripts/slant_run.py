@@ -50,11 +50,18 @@ def source_for(sub: str) -> pathlib.Path:
     return deep if deep.exists() else SHALLOW / f"{sub}.posts.jsonl.zst"
 
 
-def build_manifest(sub: str) -> list[dict]:
-    """Draw the full case-control sample once, deterministically."""
+def build_manifest(sub: str, extend: bool = False) -> list[dict]:
+    """Draw the case-control sample deterministically.
+
+    With extend=True the existing manifest is kept as a prefix and any newly
+    available posts are appended. A plain rebuild after a deeper harvest would
+    reshuffle into a different sample and orphan labels already paid for, so
+    growing the corpus never discards prior work.
+    """
     path = MANIFESTS / f"{sub}.json"
-    if path.exists():
-        return json.loads(path.read_text())
+    existing = json.loads(path.read_text()) if path.exists() else None
+    if existing is not None and not extend:
+        return existing
     posts = [p for p in read_posts(source_for(sub)) if (p.get("title") or "").strip()]
     removed = [p for p in posts if p.get("removed_by_category") == "moderator"]
     kept = [p for p in posts if not p.get("removed_by_category")]
@@ -64,10 +71,14 @@ def build_manifest(sub: str) -> list[dict]:
     arm = ([{"id": p["id"], "title": p["title"], "removed": True} for p in removed[:n]] +
            [{"id": p["id"], "title": p["title"], "removed": False} for p in kept[:n]])
     rng.shuffle(arm)
+    if existing is not None:
+        seen = {m["id"] for m in existing}
+        arm = existing + [m for m in arm if m["id"] not in seen]
     MANIFESTS.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(arm))
-    print(f"r/{sub}: manifest built -- {len(removed)} removed, {len(kept)} kept, "
-          f"{len(arm)} in sample ({n} per arm)", flush=True)
+    grew = f" (was {len(existing)})" if existing is not None else ""
+    print(f"r/{sub}: manifest {len(arm)}{grew} -- {len(removed)} removed, "
+          f"{len(kept)} kept, {n} per arm", flush=True)
     return arm
 
 
@@ -122,6 +133,12 @@ def main():
     ap.add_argument("--limit", type=int, default=2200,
                     help="max NEW classifications this invocation, across all subs")
     ap.add_argument("--stats", action="store_true", help="recompute stats and exit")
+    ap.add_argument("--alloc", type=str, default=None,
+                    help="explicit per-sub budget, e.g. 'conspiracy:3000,politics:7000'. "
+                         "Subs omitted here are skipped -- used to stop spending on a "
+                         "control that has already reached significance.")
+    ap.add_argument("--extend", action="store_true",
+                    help="grow manifests from a deeper harvest, keeping prior labels")
     args = ap.parse_args()
 
     LABELS.mkdir(parents=True, exist_ok=True)
@@ -136,15 +153,23 @@ def main():
     # Split the budget evenly rather than greedily: taking subs in order would
     # let the first manifest (r/politics has 15,712 rows) swallow the whole run
     # and leave the others at zero.
+    alloc = None
+    if args.alloc:
+        alloc = {k.strip(): int(v) for k, v in
+                 (kv.split(":") for kv in args.alloc.split(","))}
     per_sub = max(1, args.limit // len(JOBS))
     budget = args.limit
     for sub, axis in JOBS:
+        if alloc is not None and sub not in alloc:
+            print(f"r/{sub}: skipped (not in --alloc)", flush=True)
+            continue
         if budget <= 0:
             break
-        man = build_manifest(sub)
+        man = build_manifest(sub, extend=args.extend)
         done = load_labels(sub, man)
         todo = [m for m in man if m["id"] not in done]
-        share = min(len(todo), per_sub, budget)
+        cap = alloc[sub] if alloc is not None else per_sub
+        share = min(len(todo), cap, budget)
         if share <= 0:
             print(f"r/{sub}: complete ({len(done)}/{len(man)})", flush=True)
             continue
@@ -152,9 +177,23 @@ def main():
               flush=True)
         t0 = time.time()
         with open(LABELS / f"{sub}.jsonl", "a") as fh:
+            failed = 0
             for i in range(0, share, BATCH):
                 chunk = todo[i:i + BATCH]
-                labs = classify_batch(lm, [c["title"] for c in chunk], axis)
+                try:
+                    labs = classify_batch(lm, [c["title"] for c in chunk], axis)
+                except Exception as e:
+                    # One unrecoverable batch must not cost the whole run. An
+                    # earlier crash on a single truncated response threw away
+                    # five hours of overnight work; skipped posts simply stay
+                    # unlabelled and are retried on the next invocation.
+                    failed += 1
+                    print(f"   !! batch at {i} failed ({type(e).__name__}: "
+                          f"{str(e)[:80]}) -- skipping", flush=True)
+                    if failed > 40:
+                        print("   too many consecutive failures, stopping", flush=True)
+                        break
+                    continue
                 for c, l in zip(chunk, labs):
                     fh.write(json.dumps({"id": c["id"], "title": c["title"],
                                          "removed": c["removed"], "label": l},

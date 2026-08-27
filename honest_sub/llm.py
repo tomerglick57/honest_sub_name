@@ -15,6 +15,15 @@ import time
 
 import requests
 
+class Truncated(RuntimeError):
+    """Generation hit max_tokens. Content may be absent OR partial.
+
+    Partial content is the dangerous case: it is a valid string but invalid
+    JSON, so without this it surfaces far away as a JSONDecodeError rather than
+    as the budget problem it is -- which killed a 5-hour overnight run.
+    """
+
+
 MODEL = "google/gemma-4-26b-a4b-qat"
 PORT = int(os.environ.get("LMS_PORT", "1234"))
 CACHE = pathlib.Path.home() / ".cache" / "honest_sub_lms_endpoint"
@@ -102,11 +111,11 @@ class LMStudio:
                 msg = choice["message"]
                 content = (msg.get("content") or "").strip()
                 reasoning = (msg.get("reasoning_content") or "").strip()
+                if choice.get("finish_reason") == "length":
+                    where = "all of it on reasoning" if not content else "mid-output"
+                    raise Truncated(
+                        f"hit max_tokens={max_tokens} ({where}); raise the budget")
                 if not content:
-                    if choice.get("finish_reason") == "length":
-                        raise RuntimeError(
-                            f"empty content: all {max_tokens} tokens went to reasoning; "
-                            "raise max_tokens")
                     raise RuntimeError(f"empty content (finish={choice.get('finish_reason')})")
                 return (content, reasoning) if want_reasoning else content
             except requests.RequestException as e:

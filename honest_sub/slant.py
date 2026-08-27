@@ -14,9 +14,12 @@ dressed as a finding.
 """
 from __future__ import annotations
 
+import json
 import math
 import random
 from collections import Counter
+
+from .llm import Truncated
 
 AXES = {
     "us_politics": {
@@ -91,15 +94,20 @@ def classify_batch(lm, titles: list[str], axis: str, max_tokens: int = 12000,
     sys_prompt = SYSTEM.format(a=ax["left"], b=ax["right"])
     listing = "\n".join(f"{i}. {t[:220]}" for i, t in enumerate(titles))
     budget = max_tokens
+    out = None
     for attempt in range(max_attempts):
         try:
             out = lm.chat_json(sys_prompt, listing, SCHEMA,
                                max_tokens=budget, temperature=temperature)
             break
-        except RuntimeError as e:
-            if "went to reasoning" not in str(e) or attempt == max_attempts - 1:
+        except (Truncated, json.JSONDecodeError):
+            # Truncated output arrives either as an explicit budget error or as
+            # unparseable JSON; both mean "generate again with more room".
+            if attempt == max_attempts - 1:
                 raise
             budget *= 2
+    if out is None:
+        raise RuntimeError("classification produced no parseable output")
     got = {d["i"]: d["label"] for d in out.get("labels", [])}
     return [got.get(i, "N") for i in range(len(titles))]
 
