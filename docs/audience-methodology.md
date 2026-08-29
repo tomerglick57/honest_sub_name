@@ -1,0 +1,253 @@
+# Audience Signal Methodology
+
+*Status: design document / pre-registration. Nothing here has been run yet.*
+*Date: 2026-08-29*
+
+## 1. Why moderation alone is not enough
+
+The slant analysis produced a result that a moderation-only lens cannot even
+express: r/conspiracy's **content** is 2.4:1 right-leaning (467 vs 197 sided
+posts), while its **moderators** remove right-leaning posts *harder* (39.2% vs
+26.9%, OR=0.57, p=0.0025). The community leans one way; the mod team pushes the
+other. Whatever "the character of the sub" means, it is not decided at one gate.
+
+A subreddit's visible character is produced by (at least) three filters in
+series, and they can point in opposite directions:
+
+```
+submitted ──► survives mods ──► gets visibility ──► gets engagement
+(posters)      (moderators)       (voters)            (commenters)
+```
+
+We have measured gate 2. This document specifies how to measure gates 3 and 4,
+plus the population behind gate 1 — and how to combine them into an honest
+description of **what a visitor actually sees**, which is the composition after
+all filters, not at any single one.
+
+It also fixes a vocabulary gap: today we cannot express "the mods are
+even-handed but the audience buries dissent", which is a real and common
+species of captured community — arguably more common than mod-driven capture,
+because voting is free and invisible.
+
+## 2. Who "the audience" is (three populations, mostly disjoint)
+
+| population | observable? | via |
+|---|---|---|
+| **voters** | only in aggregate (votes are anonymous) | `score`, `upvote_ratio` per post |
+| **commenters** | yes, individually | comment corpus (phase 2) |
+| **posters** | yes, individually | `author` on posts |
+
+Two consequences we must design around:
+
+- **Votes on large subs come substantially from non-members** browsing r/all
+  and r/popular. Vote-based metrics therefore measure a broader, more casual
+  population than the community proper. For a sub like r/conspiracy the voters
+  may partly be outsiders reacting. We cannot separate insider from outsider
+  votes — this is a stated limitation, not a solvable one.
+- The honest *name* should be about what determines visibility — the voters —
+  because they decide what a visitor sees. Poster-population metrics (M5)
+  characterise *who is there* instead. These answer different questions and are
+  reported as separate fields, never blended.
+
+## 3. Gate zero: score provenance (blocks everything else)
+
+Measured on the current corpus: 42% of r/science posts sit at `score == 1`,
+57% of r/conspiracy posts at `upvote_ratio == 1.0`, medians of 3–4 against
+means of 62–709. Arctic Shift snapshots posts shortly after creation, so a
+large fraction of scores were captured **before voting happened**. A post at
+score 1 may be ignored or may simply have been photographed five minutes after
+birth; the current data cannot tell, because our harvester drops
+`retrieved_on` (the API *does* return it — it is in the 112-field full
+response).
+
+**No audience metric may be computed until snapshot age is verified.**
+
+Decision procedure (G0):
+
+1. Probe: fetch ~500 full posts per target sub, keep `retrieved_on`, and plot
+   the distribution of `retrieved_on - created_utc`.
+2. If a usable fraction (>60%) was snapshotted ≥24h after creation → add
+   `retrieved_on` to `POST_KEEP`, re-harvest, and filter to mature snapshots.
+3. Otherwise → re-fetch final scores live for exactly the post IDs we analyse.
+   Reddit's `/api/info` accepts 100 fullnames per request (~10k posts ≈ 100
+   requests), but requires OAuth app credentials the user must create. Fall
+   back to checking whether Arctic Shift offers re-scanned score data.
+
+Preference: live re-fetch even if (2) passes, because it yields *final* scores
+for removed and surviving posts alike at a known common timepoint.
+
+## 4. Metrics
+
+Naming: M1–M5 reuse the existing post corpus and (for the three slant subs)
+the ~11k stance labels already banked. M6 requires a new corpus.
+
+### M1 — Vote asymmetry among survivors
+
+*Do voters treat the two sides of the axis differently, where the mods let both
+stand?*
+
+- **Unit:** surviving (non-removed) post with a stance label A or B.
+- **Computation:** score → percentile within its sub × month cohort (traffic
+  grows over time; raw scores are incomparable across years). Compare percentile
+  distributions of A vs B with Mann-Whitney U; report rank-biserial effect size.
+- **Survivorship rule:** *only* survivors. Removed posts stop accruing votes;
+  including them re-discovers the removal effect and mislabels it an audience
+  effect.
+- **Secondary signal:** `upvote_ratio` as a controversy measure, restricted to
+  posts with `score ≥ 10` (the ratio is quantised and unreliable at low vote
+  counts).
+- **Free lunch:** for r/conspiracy, r/Conservative, r/politics the labels are
+  already on disk — e.g. r/conspiracy has ≈144 surviving A and ≈284 surviving B
+  posts. M1 costs zero new classification there.
+
+### M2 — Visibility-weighted composition
+
+*What does the front page actually look like?*
+
+Raw composition weights a score-1 post equally with a score-20k post; visitors
+experience neither equally. Two estimators, reported side by side:
+
+- stance mix among the **top decile** of posts by within-month percentile
+  (crude but assumption-free);
+- stance mix weighted by `log10(1 + score)` (Reddit's hot ranking is
+  logarithmic in score, so this approximates time-integrated visibility without
+  simulating the decay term).
+
+The gap between raw composition (what gets posted) and visibility-weighted
+composition (what gets seen) is itself a finding: it is the audience's
+editorial line, expressed in votes.
+
+### M3 — Author attrition (chilling effect)
+
+*Do dissenters stop coming back?*
+
+The nastiest failure mode of gates 2–3: if hostile reception drives one side's
+authors away, the sub grows **more** homogeneous while moderation grows
+**lighter** — every per-post metric improves as capture deepens.
+
+- **Unit:** (author, stance-labelled post) pair; author ≠ `[deleted]`.
+- **Outcome:** does the author post again in the same sub within 90 days?
+- **Comparison:** within stance, across reception (removed / bottom-quartile
+  percentile / top-half); then across stances at matched reception. The
+  double split matters: bad posts drive anyone away, so the signal is
+  *differential* attrition at the *same* reception level.
+- **Confound to state up front:** we observe leaving the sub, not leaving
+  Reddit. An author who quits Reddit entirely inflates attrition everywhere.
+  Mitigation: check the author's site-wide activity via Arctic Shift before
+  counting them as chilled (they must post *somewhere* in the window).
+
+### M4 — Self-deletion asymmetry
+
+`removed_by_category == "deleted"` (author withdrew the post) is currently
+discarded. Asymmetric self-deletion across stance is a pile-on proxy — people
+deleting under hostile reception. Rates are meaningless alone (people delete
+for many reasons); only the A-vs-B asymmetry, with the same Fisher +
+permutation machinery as the moderation analysis, is reportable.
+
+### M5 — Cross-sub author footprint
+
+*Who is this community, independent of what they write here?*
+
+Take the top ~300 non-bot posters of a target sub; for each, fetch their
+posting distribution across all of Reddit (`/api/users/interactions/subreddits`
+— **endpoint contract must be verified before building**, we have never called
+it). Aggregate into: which other subs are over-represented among this sub's
+core posters, versus the same statistic for a size-matched neutral baseline
+sub. If r/conspiracy's core posters are disproportionately also r/Conservative
+posters, that is an audience fingerprint no careful on-sub posting hides.
+
+- Cheap: no classification, pure counting.
+- Bot filter first: exclude `AutoModerator`, accounts with >X posts/day, and
+  the sub's own mod list where retrievable.
+- **Ethics constraint (hard):** aggregate statistics only. No per-user data in
+  any output, ever. The published artefact is "N% of core posters are also
+  active in r/X", never a list of names.
+
+### M6 — Comment-level analysis (phase 2, separate corpus)
+
+The biggest blind spot: a sub can allow dissenting posts and delete dissenting
+*comments* — cheaper, less visible, probably where most real gatekeeping
+lives. Everything above has a comment analogue: comment removal asymmetry,
+comment vote asymmetry, commenter attrition.
+
+Scoped as a separate project deliberately: r/conspiracy alone has 44.2M
+comments against 1.85M posts (24×), and comment stance classification at our
+measured ~1,000 labels/hr does not scale to that without aggressive sampling
+design (per-thread sampling under stance-labelled posts is the likely shape).
+
+## 5. Statistical discipline
+
+- Scores are extremely heavy-tailed (median 4, mean 709 on r/science). **No
+  means, no t-tests.** Rank-based everything; percentile-normalise within
+  sub × month before any cross-time pooling.
+- Every asymmetry claim ships with: effect size, exact test p, permutation p
+  (5,000 shuffles of the stance labels), and achieved power at the observed
+  group sizes for a target effect (OR=2 or rank-biserial 0.2).
+- **Nulls are only reportable at ≥80% achieved power**, and are then stated as
+  "no asymmetry detected at power P", never as "even-handed". Non-differential
+  label noise (measured: 89% stability) biases toward null; findings are
+  conservative, nulls are weak.
+- Multiple comparisons: the family is (subs × metrics). With 3 subs × 3
+  primary metrics (M1, M3, M4) that is 9 tests → Benjamini-Hochberg at
+  q=0.05 for discovery, with the headline claims re-checked against Bonferroni.
+  M2 and M5 are descriptive (no hypothesis test), reported with CIs only.
+- This document is the pre-registration: metrics, thresholds, and controls are
+  fixed *before* the runs. Anything exploratory that comes up later gets
+  labelled exploratory in the output.
+
+## 6. Validation gates (in order; a failed gate stops the line)
+
+| gate | test | pass condition |
+|---|---|---|
+| G0 | score snapshot age probe | ≥60% mature snapshots, or live re-fetch working |
+| G1 | positive control, M1 on r/Conservative | voters bury left-leaning content (direction known a priori), q<0.05 |
+| G2 | permutation control | shuffled labels kill every significant result |
+| G3 | label stability | already measured at 89%/3 passes; re-verify only if the classifier or prompt changes |
+| G4 | power | ≥80% for the target effect before any null is interpreted |
+
+G1 is the same logic that validated the moderation pipeline: a flaired-only
+partisan sub's audience *must* show the expected vote asymmetry. If it does
+not, the metric — not the sub — is broken.
+
+## 7. Output schema change
+
+The lesson of r/conspiracy is that collapsing gates into one "bias" number
+produces confidently wrong labels. The per-sub record gains separate,
+never-blended fields:
+
+```json
+{
+  "content_lean":        {"ratio": "...", "n_A": 0, "n_B": 0},
+  "moderation_asymmetry":{"odds_ratio": 0, "p": 0, "direction": "..."},
+  "audience_asymmetry":  {"effect": 0, "p": 0, "direction": "...", "power": 0},
+  "visibility_mix":      {"raw": "...", "weighted": "..."},
+  "attrition":           {"differential": 0, "p": 0},
+  "funnel_summary":      "one sentence per gate, sourced from the fields above"
+}
+```
+
+The honest description then *cites the gates separately* ("posted content leans
+X; moderators trim Y harder; voters amplify Z"), and the LLM keeps the job it
+is good at — phrasing — while every load-bearing number stays measured.
+
+## 8. Phasing and cost (measured rates: ~1,000 labels/hr, ~150 posts/sec harvest)
+
+| phase | work | new classification | wall-clock |
+|---|---|---|---|
+| 0 | G0 probe + `retrieved_on` fix (+ optional live re-fetch) | none | hours |
+| 1 | M1 + M2 + M4 on the three slant subs | none (labels banked) | < 1 day |
+| 2 | M3 attrition (needs author post-history lookups) | none | ~1 day |
+| 3 | M5 footprint (verify endpoint, then build) | none | ~1 day |
+| 4 | new target subs through the full funnel | ~6k labels/sub ≈ 6h/sub | per sub |
+| 5 | M6 comments | new corpus + sampling design | separate project |
+
+## 9. Known limitations, stated rather than solved
+
+- Voter identity is unobservable; insider/outsider votes cannot be separated.
+- Brigading events (r/all spikes, external links to threads) inject foreign
+  votes; month-level percentile normalisation dampens but does not remove this.
+- `author == "[deleted]"` posts are invisible to M3/M5.
+- Vote fuzzing: Reddit perturbs displayed scores anti-bot; harmless at rank
+  level, another reason not to use raw values.
+- Engagement ≠ endorsement: comment counts are excluded from all asymmetry
+  metrics for exactly this reason; they return only in M6 where stance is known.
