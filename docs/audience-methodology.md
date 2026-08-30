@@ -1,7 +1,8 @@
 # Audience Signal Methodology
 
-*Status: design document / pre-registration. Nothing here has been run yet.*
-*Date: 2026-08-29*
+*Status: pre-registered 2026-08-29; G0 and Phase 1 executed 2026-08-30.*
+*Outcomes are recorded in §10 below -- including a failed gate. The metric
+definitions above are unchanged from pre-registration.*
 
 ## 1. Why moderation alone is not enough
 
@@ -251,3 +252,61 @@ is good at — phrasing — while every load-bearing number stays measured.
   level, another reason not to use raw values.
 - Engagement ≠ endorsement: comment counts are excluded from all asymmetry
   metrics for exactly this reason; they return only in M6 where stance is known.
+
+## 10. Execution log (what actually happened)
+
+### G0: passed, and the score-provenance alarm was a false alarm
+
+`retrieved_on` is ~36 seconds after creation for 100% of probed posts -- but
+scores are **age-stationary**: posts 2 days old show the same medians and
+thousands-scale maxima as posts 3 years old (r/politics medians 20-75 at every
+age bucket). Arctic Shift refreshes scores after ingestion; `retrieved_on`
+records only first contact. The low medians that triggered the alarm (42% of
+r/science at score==1) are organic -- most posts genuinely die unvoted. Scores
+are usable as-is. A live OAuth spot-check remains optional belt-and-braces
+(anonymous `/api/info` returns 403).
+
+### Phase 1 results (M1 + M2, survivors only, banked labels)
+
+| sub | surviving A:B | median pctile A / B | rank-biserial | MW p | visibility mix (A) |
+|---|---|---|---|---|---|
+| r/politics | 827 : 144 | 0.71 / **0.13** | **0.77** | 2.8e-49 | 85% raw -> **96%** weighted |
+| r/conspiracy | 144 : 284 | 0.455 / 0.455 | -0.05 | 0.42 | 34% raw -> 33% weighted |
+| r/Conservative | 39 : 299 | 0.50 / 0.52 | 0.02 | 0.87 | -- |
+
+r/politics: the audience buries surviving right-leaning content massively
+(top decile: 142 left vs **1** right). Moderation and voting push the same
+direction; the visible sub is ~96% left after both gates.
+
+r/conspiracy: voters are neutral. Its right-lean is composition-driven --
+posted 2.4:1 right, mods trim right harder, voters amplify neither side.
+
+### G1: FAILED as pre-registered -- adjudicated by audit, metric semantics at fault
+
+r/Conservative's audience showed no burial of "left" survivors (p=0.87).
+Reading the titles resolves it: the top-upvoted "A-labelled" survivors are
+right-wing posters **quoting the left to mock it** ("Biden: 'MAGA Republicans
+are a threat'", "Keith Olbermann says RFK Jr. must withdraw"). The classifier
+labels the stance the *title text expresses* -- correct per its instructions,
+wrong for this use. **Title-stance != poster-stance under quotation**, and the
+error concentrates precisely where the vote test needs precision: in-group
+spaces, where out-group quotation is a dominant genre.
+
+Consequences:
+- The r/politics result stands: its B-labelled survivors were audited earlier
+  and are genuine right-framed content, and the metric demonstrably detects
+  vote asymmetry (it is not broken).
+- The r/Conservative *moderation* OR (2.67) is if anything an underestimate:
+  some "surviving A" is mock-quotation rather than genuine left content, so
+  genuine-left survival is rarer than measured.
+- The r/conspiracy vote-null carries unquantified quotation contamination;
+  direction unknown.
+
+### Required fix before M1 is trusted on in-group subs
+
+Add a poster-stance pass: classify whether the title *advocates* the stance or
+*quotes/showcases the out-group* (label Q), and run vote asymmetry on advocacy
+posts only. Small job (~340 surviving sided posts for r/Conservative); needs
+its own validation batch before use, since irony detection is harder than
+stance detection. G1 is then re-run on advocacy-only labels; the gate remains
+failed until it passes.
