@@ -310,3 +310,32 @@ posts only. Small job (~340 surviving sided posts for r/Conservative); needs
 its own validation batch before use, since irony detection is harder than
 stance detection. G1 is then re-run on advocacy-only labels; the gate remains
 failed until it passes.
+
+### Batch of 2026-09-04: advocacy-vs-quotation pass executed
+
+Probe gate 16/16. All 3,077 sided titles q-labelled, plus ~2,400 additional
+r/Conservative stance labels to grow the left-advocacy survivor sample
+(70 ADV-A survivors, up from ~28). Finished in 5h48m against a 7h budget.
+
+**Every moderation OR is robust to dropping quotation posts** (all-sided ->
+advocacy-only): r/Conservative 2.67 -> 2.68, r/conspiracy 0.571 -> 0.58,
+r/politics 0.404 -> 0.399. The moderation findings were not quotation
+artifacts.
+
+**r/politics vote asymmetry survives at full strength** on advocacy-only
+(rank-biserial 0.757, p=8.7e-38). **r/conspiracy's vote-null persists** at
+usable n (131 vs 257, rb=-0.03): its audience genuinely amplifies neither
+side; the sub's right-lean remains composition-driven at every gate.
+
+**G1 after the fix: direction correct, marginally underpowered.** Removing
+quotation posts flipped r/Conservative's vote effect from +0.02 to -0.138
+(left advocacy ranks lower, as a partisan sub's audience must behave), p=0.059
+at n_A=70. The contamination hypothesis is confirmed directionally; the gate
+formally remains open until p<0.05, which at the observed effect size needs
+roughly 3x the ADV-A survivor sample (~4-5h more Conservative classification).
+
+Genre map note: QUO share among surviving left-labelled posts in
+r/Conservative is 28.6% overall but concentrates among top-scored posts
+(the audited top-10 were mostly quotation) -- quotation is not just noise, it
+is the sub's preferred way of engaging the out-group, and it earns upvotes
+there.
