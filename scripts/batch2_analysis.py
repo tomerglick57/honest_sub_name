@@ -127,3 +127,32 @@ for s, rs in bysub.items():
         say(f"  {stratum:8} return: A {ra:.0%} (n={len(aa)}) vs B {rbb:.0%} (n={len(bb)})  p={p:.3g}")
 
 pathlib.Path("data/out/batch2_report.txt").write_text("\n".join(lines))
+
+# ---------- M3 with visitor control (appended) ----------
+prior_p = L / "m3_prior.jsonl"
+if prior_p.exists():
+    say("\n=== M3 stratified by prior in-sub activity (visitor control) ===")
+    prior = {(r["sub"], r["id"]): r["prior_active"] for r in jl(prior_p)}
+    for s, rs in bysub.items():
+        regs = [r for r in rs if prior.get((r["sub"], r["id"])) is True]
+        say(f"r/{s}: {len(regs)}/{len(rs)} pairs are prior-active regulars")
+        for stratum, f in (("removed", lambda r: r["removed"]),
+                           ("kept", lambda r: not r["removed"])):
+            aa = [r for r in regs if r["label"] == "A" and f(r)]
+            bb = [r for r in regs if r["label"] == "B" and f(r)]
+            if len(aa) < 15 or len(bb) < 15:
+                say(f"  regulars/{stratum:8} insufficient (A={len(aa)} B={len(bb)})"); continue
+            ra = sum(r["returned"] for r in aa) / len(aa)
+            rbb = sum(r["returned"] for r in bb) / len(bb)
+            p = fisher_exact_two_sided(
+                sum(r["returned"] for r in aa), len(aa) - sum(r["returned"] for r in aa),
+                sum(r["returned"] for r in bb), len(bb) - sum(r["returned"] for r in bb))
+            say(f"  regulars/{stratum:8} return: A {ra:.0%} (n={len(aa)}) vs B {rbb:.0%} (n={len(bb)})  p={p:.3g}")
+        # visitor share by stance -- itself informative
+        for lab in ("A", "B"):
+            ls = [r for r in rs if r["label"] == lab]
+            vs = sum(1 for r in ls if prior.get((r["sub"], r["id"])) is False)
+            if ls:
+                say(f"  visitor share among {lab}: {vs/len(ls):.0%} (n={len(ls)})")
+
+pathlib.Path("data/out/batch2_report.txt").write_text("\n".join(lines))
