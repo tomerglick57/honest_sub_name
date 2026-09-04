@@ -11,7 +11,13 @@ L = pathlib.Path("data/out")
 
 
 def jl(p):
-    return [json.loads(x) for x in pathlib.Path(p).read_text().splitlines() if x.strip()]
+    """Tolerates a missing file: a deadline can cut a stage short, and the
+    analysis must report what exists rather than crash on what does not --
+    the first run of this script lost an already-computed G1 PASS that way."""
+    p = pathlib.Path(p)
+    if not p.exists():
+        return []
+    return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
 
 
 def month_pct(posts):

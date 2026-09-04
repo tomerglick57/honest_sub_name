@@ -339,3 +339,37 @@ r/Conservative is 28.6% overall but concentrates among top-scored posts
 (the audited top-10 were mostly quotation) -- quotation is not just noise, it
 is the sub's preferred way of engaging the out-group, and it earns upvotes
 there.
+
+### Batch of 2026-09-04 (second window): G1 closed; M3 and M4 executed
+
+**G1 PASSES.** Survivors-only expansion tripled the left-advocacy sample
+(70 -> 151): rank-biserial -0.115, MW p=0.019, perm p=0.02. All
+pre-registered validation gates are now closed.
+
+**M4 (self-deletion):** r/Conservative's author-deleted posts are 30% left vs
+11% left among kept -- OR=3.27, p=3.3e-05: left posters withdraw their own
+posts at ~3x the odds, the predicted pile-on signature. r/politics shows no
+asymmetry (p=0.39). r/conspiracy's deleted arm was cut by the deadline and
+remains to run (~20 min GPU).
+
+**M3 (attrition, site-active authors only, 90-day window):**
+- r/Conservative, removed stratum: left advocates return 42% vs right 68%
+  (p=1.1e-08) -- removal drives the two sides away at very different rates.
+- r/conspiracy, KEPT stratum: left 69% vs right 84% (p=0.0019). The first
+  asymmetry found at any gate in r/conspiracy: neither mods nor voters enforce
+  its lean, but left advocates disproportionately do not come back even when
+  untouched. Composition-driven lean with a retention mechanism.
+- r/politics, kept stratum: right advocates churn more (78% vs 91%, p=1.5e-4).
+
+**Stated limitation (pre-specified confound, uncontrolled):** returning to the
+sub conflates chilled regulars with drive-by visitors who never intended to
+stay; cross-posting partisans are plausibly more often visitors. The fix is a
+prior-activity stratification (author active in-sub before the post), one
+additional API pass per author, not yet run. M3 directions are therefore
+suggestive; magnitudes should not be quoted until that control exists.
+
+**Process note:** the deadline correctly stopped M4 mid-stage, but the
+analysis script crashed on the absent conspiracy file and, because it wrote
+its report only at the end, an already-computed G1 PASS reached only the log.
+Fixed: missing stage files now yield empty sections, and the run's data was
+never at risk (all label writes are incremental).
