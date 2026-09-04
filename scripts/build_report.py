@@ -26,21 +26,21 @@ FUNNELS = {
       ("Who posts", "right", "sided posts 2.4 : 1 right (467 vs 197); 47% of all posts aren’t about US politics"),
       ("Moderators", "left", "remove right-advocacy MORE: 39.7% vs 27.6% · OR 0.58 · p=0.0055"),
       ("Voters", "even", "no ranking edge either way · rank-biserial −0.03 · p=0.66"),
-      ("Who stays", "right", "left advocates return 69% vs 84% even when posts survive · p=0.0019"),
+      ("Who stays", "right", "regulars only: left advocates return 76% vs 86% when posts survive · p=0.03, suggestive"),
     ]},
   "Conservative": {"subtitle": "1.2M subscribers · 6,676 stance labels",
     "gates": [
       ("Who posts", "right", "sided posts 4.3 : 1 right (557 vs 129)"),
       ("Moderators", "right", "remove left-advocacy at 69.6% vs 46.0% · OR 2.68 · p=7.6e-11"),
       ("Voters", "right", "bury surviving left advocacy · rank-biserial −0.115 · p=0.019"),
-      ("Who stays", "right", "removed left advocates return 42% vs 68%; left posters self-delete at 3.3× odds · p=3.3e-05"),
+      ("Who stays", "right", "removed left regulars return 57% vs 82% (p=4.7e-06); left posters self-delete at 3.3× odds (p=3.3e-05)"),
     ]},
   "politics": {"subtitle": "8.4M subscribers · 8,004 posts stance-classified",
     "gates": [
       ("Who posts", "left", "sided posts 3.6 : 1 left (1,371 vs 377)"),
       ("Moderators", "left", "remove right-advocacy at 63.2% vs 40.6% · OR 0.40 · p=2.7e-12 (source-quality rules ruled out)"),
       ("Voters", "left", "median percentile: left .70, right .13 · rank-biserial 0.757 · p=8.7e-38 · top decile 142:1"),
-      ("Who stays", "left", "kept right advocates still return less: 78% vs 91% · p=1.5e-4"),
+      ("Who stays", "left", "kept right regulars still return less: 82% vs 93% · p=6.4e-4"),
     ]},
 }
 LEAN = {"left": ("◀ pushes left", "lean-l"), "right": ("pushes right ▶", "lean-r"),
@@ -231,7 +231,7 @@ Positive controls: r/Conservative must show left-removal (it does, OR 2.68) and 
 left advocacy (it does, p=.019). Vote analysis uses survivors only; attrition excludes authors who left
 Reddit entirely. Nulls below 80% power are never reported as “even-handed”.</p>
 <footer>honest_sub_name · data 2023–2026 via Arctic Shift · stance model: Gemma 4 26B (local) ·
-verdicts phrased by model, every number measured · visitor-control on retention pending where noted</footer>
+verdicts phrased by model, every number measured · retention figures are visitor-controlled (established regulars only)</footer>
 </div>
 <script>
 const rowsEl=[...document.querySelectorAll('.row')],q=document.getElementById('q');

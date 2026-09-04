@@ -373,3 +373,23 @@ analysis script crashed on the absent conspiracy file and, because it wrote
 its report only at the end, an already-computed G1 PASS reached only the log.
 Fixed: missing stage files now yield empty sections, and the run's data was
 never at risk (all label writes are incremental).
+
+### Final batch (2026-09-05): all queued work executed, project goal delivered
+
+**M3 visitor control (pre-specified):** changes conclusions, as designed.
+r/Conservative's removal-chilling survives strongly among established regulars
+(left return 57% vs 82%, p=4.7e-06; left advocates are also 29% visitors vs
+12% for right). r/politics survives (kept right regulars 82% vs 93%,
+p=6.4e-4). r/conspiracy attenuates: kept-stratum regulars 76% vs 86%, p=0.03
+-- direction holds, downgraded to suggestive; the earlier p=0.0019 was partly
+drive-by visitors.
+
+**M4 completed:** r/conspiracy shows no significant self-deletion asymmetry
+(OR=0.52, p=0.12). r/politics is marginal (right posters self-delete at ~2x
+odds, p=0.047) -- suggestive only.
+
+**Deliverable:** the Honest Subreddit Audit page -- 100 ranked ledger entries
+(honest name, description, measured gap score, removal evidence) plus
+four-gate funnel profiles for r/politics, r/conspiracy, r/Conservative with
+visitor-controlled retention. Deep-dive names were set deterministically after
+the model twice echoed the sub's own name despite instruction.
