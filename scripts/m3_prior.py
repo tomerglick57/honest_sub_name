@@ -23,7 +23,7 @@ def main():
         done = {(r["sub"], r["id"]) for r in
                 (json.loads(l) for l in OUT.read_text().splitlines() if l.strip())}
     posts = {}
-    for sub in ("Conservative", "conspiracy", "politics"):
+    for sub in ("Conservative", "conspiracy", "politics", "PublicFreakout"):
         for p in read_posts(pathlib.Path(f"data/raw_deep/{sub}.posts.jsonl.zst")):
             posts[(sub, p["id"])] = p
     todo = [r for r in rows if (r["sub"], r["id"]) not in done

@@ -30,7 +30,7 @@ MANIFESTS = OUT / "slant_manifests"
 LOCK = OUT / ".slant.lock"
 BATCH = 12
 JOBS = [("conspiracy", "us_politics"), ("Conservative", "us_politics"),
-        ("politics", "us_politics")]
+        ("politics", "us_politics"), ("PublicFreakout", "us_politics")]
 
 
 def lock():

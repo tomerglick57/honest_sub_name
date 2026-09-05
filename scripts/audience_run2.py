@@ -17,7 +17,7 @@ import random
 Q = pathlib.Path("data/out/q_labels")
 MANIFESTS = pathlib.Path("data/out/slant_manifests")
 SLANT = pathlib.Path("data/out/slant_labels")
-SUBS = ["Conservative", "conspiracy", "politics"]
+SUBS = ["Conservative", "conspiracy", "politics", "PublicFreakout"]
 
 
 def corpus(sub):

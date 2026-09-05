@@ -12,7 +12,7 @@ from honest_sub.harvest import read_posts
 from honest_sub.llm import LMStudio
 from honest_sub.slant import classify_batch
 
-SUBS = ["Conservative", "politics", "conspiracy"]
+SUBS = ["PublicFreakout", "Conservative", "politics", "conspiracy"]
 MAN_DIR = pathlib.Path("data/out/m4_manifests")
 LOCK = pathlib.Path("data/out/.m4.lock")
 BATCH, PER_SUB = 12, 350

@@ -86,7 +86,7 @@ say(f"G1: {verdict}")
 
 # ---------- M4 ----------
 say("\n=== M4 self-deletion asymmetry (deleted vs kept stance mix) ===")
-for s in ("Conservative", "conspiracy", "politics"):
+for s in ("Conservative", "conspiracy", "politics", "PublicFreakout"):
     manp = json.loads((L/f"slant_manifests/{s}.json").read_text())
     bt = {m["title"]: m["id"] for m in manp}
     rem = {m["id"]: m["removed"] for m in manp}
