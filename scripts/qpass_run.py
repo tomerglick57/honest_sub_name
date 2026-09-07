@@ -14,7 +14,7 @@ MANIFESTS = pathlib.Path("data/out/slant_manifests")
 SLANT = pathlib.Path("data/out/slant_labels")
 LOCK = pathlib.Path("data/out/.qpass.lock")
 VALID_MARK = OUT / ".validated"
-SUBS = ["PublicFreakout", "Conservative", "conspiracy", "politics"]
+SUBS = ["PublicFreakout", "pics", "Conservative", "conspiracy", "politics"]
 BATCH = 12
 
 

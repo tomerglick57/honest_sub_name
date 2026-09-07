@@ -12,7 +12,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from honest_sub.arctic import ArcticShift
 from honest_sub.harvest import read_posts
 
-SUBS = ["PublicFreakout", "Conservative", "conspiracy", "politics"]
+SUBS = ["PublicFreakout", "pics", "Conservative", "conspiracy", "politics"]
 OUT = pathlib.Path("data/out/m3_attrition.jsonl")
 WINDOW = 90 * 86400
 
