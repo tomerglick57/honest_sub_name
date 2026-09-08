@@ -24,7 +24,12 @@ class Truncated(RuntimeError):
     """
 
 
-MODEL = "google/gemma-4-26b-a4b-qat"
+MODEL = os.environ.get("LMS_MODEL", "google/gemma-4-31b-qat")
+# Preferred server: LM Studio on the second PC (user-designated 2026-09-08).
+# Measured there: gemma-4-31b-qat does ~618 labels/hr (vs ~1000/hr for the
+# 26B MoE on the Windows host) and, unlike the 26B, does NOT hit degenerate
+# reasoning loops at temperature 0. Falls back to the local host if down.
+REMOTE_HOSTS = ["http://192.168.1.185:1234"]
 PORT = int(os.environ.get("LMS_PORT", "1234"))
 CACHE = pathlib.Path.home() / ".cache" / "honest_sub_lms_endpoint"
 IPCONFIG = "/mnt/c/Windows/System32/ipconfig.exe"
@@ -57,7 +62,7 @@ def discover(force: bool = False) -> str:
         if cached and _alive(cached):
             return cached
     env = os.environ.get("LMS_BASE")
-    candidates = ([env] if env else []) + [f"http://127.0.0.1:{PORT}"] + [
+    candidates = ([env] if env else []) + REMOTE_HOSTS + [f"http://127.0.0.1:{PORT}"] + [
         f"http://{ip}:{PORT}" for ip in _windows_ips()
     ]
     for base in candidates:
