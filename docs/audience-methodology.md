@@ -417,3 +417,28 @@ too thin (18 R) for any directional stance claim, and none is made.
 **Methodology lesson recorded:** a pooled multi-year verdict can be clean
 while the sub changes underneath it. Time-resolved checks (removal trajectory,
 visibility-weighted topic share by year) belong in the standard pipeline.
+
+### Crowd co-activity layer (2026-09-08): the pics agenda change came with new people
+
+New metric M7: per half-year, the share of a sub's sampled posters (80/bucket)
+also posting that half-year in a disclosed political-subreddit set, reported as
+the EXCESS over a genre-matched baseline crowd (r/aww, harvested to 2008).
+Title-independent by construction.
+
+Validated behaviours: the baseline absorbs the small-Reddit era (2008-09 raw
+shares of 25-58% on BOTH subs net to ~zero excess); the 2023 John Oliver
+protest -- an in-community event -- correctly leaves no trace.
+
+Finding: single buckets are noise-limited (band +/-7.5pt at n=80) and only
+2025H1 clears it alone, but pooled over 2024H2-2026H1 the pics crowd is
+politically co-active at 10.0% vs the baseline's 1.9% (OR 5.8, p=1.4e-05).
+An auditability flaw was found and fixed by re-query: the runner stored only
+a boolean, so positives were re-checked for WHICH sub triggered them --
+70% are explicit political subs, and excluding the two borderline members
+of the set (PublicFreakout, conspiracy) sharpens the result to 8.1% vs 1.2%
+(OR 7.0, p=4e-05). Store the triggering subs, not a boolean, in future runs.
+
+Verdict revision recorded honestly: the interim read (pics half only)
+leaned "same crowd, new votes"; the completed baseline flipped it. The 2024-26
+front-page politicization is accompanied by a measurable influx of politically
+active posters -- the wedge and the crowd arrived together.

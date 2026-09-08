@@ -126,6 +126,76 @@ def pics_chart() -> str:
     <script>window.__pics_ts={hover_meta};</script>"""
 
 
+def crowd_chart() -> str:
+    """Excess political co-activity of the r/pics crowd over the r/aww baseline.
+
+    Bars around zero: the excess IS the statistic (raw shares are dominated by
+    era effects -- in 2008 every small-Reddit user posted everywhere, and the
+    baseline is what absorbs that). Emphasis-on-polarity: positive bars in the
+    accent, negative recessive. The shaded band is +/-1.96 * median per-bucket
+    SE: differences inside it are sampling noise at n=80 authors per bucket.
+    """
+    cs = json.loads(pathlib.Path("data/out/crowd_series.json").read_text())
+    pics, aww = cs.get("pics", {}), cs.get("aww", {})
+    common = [b for b in pics if b in aww]
+    common.sort(key=lambda b: (int(b[:4]), b[-1]))
+    if len(common) < 10:
+        return ""
+    import math as _m
+    rows = []
+    ses = []
+    for b in common:
+        p1, n1 = pics[b]["share"], pics[b]["n"]
+        p2, n2 = aww[b]["share"], aww[b]["n"]
+        se = _m.sqrt(p1*(1-p1)/n1 + p2*(1-p2)/n2)
+        ses.append(se)
+        rows.append((b, p1 - p2, p1, p2))
+    band = 1.96 * sorted(ses)[len(ses)//2]
+    W, H, ML, MR, MT, MB = 660, 210, 40, 158, 12, 30
+    lo = min(min(r[1] for r in rows), -band) - 0.02
+    hi = max(max(r[1] for r in rows), band) + 0.02
+    def y(v): return MT + (hi - v) / (hi - lo) * (H - MT - MB)
+    def x(i): return ML + i * (W - ML - MR) / (len(rows) - 1)
+    bw = max(3.0, (W - ML - MR) / len(rows) - 2)  # 2px surface gap between bars
+    y0 = y(0)
+    bars = ""
+    for i, (b, ex, _, _) in enumerate(rows):
+        cls = "cba" if ex >= 0 else "cbr"
+        yy = y(max(ex, 0)); hh = abs(y(ex) - y0)
+        bars += f'<rect x="{x(i)-bw/2:.1f}" y="{yy:.1f}" width="{bw:.1f}" height="{max(hh,0.5):.1f}" rx="1.5" class="{cls}"/>'
+    grid = "".join(
+        f'<line x1="{ML}" y1="{y(v):.1f}" x2="{W-MR}" y2="{y(v):.1f}" class="cg"/>' 
+        f'<text x="{ML-6}" y="{y(v)+4:.1f}" class="ct" text-anchor="end">{int(round(v*100)):+d}%</text>'
+        for v in (-.20, -.10, 0, .10))
+    years = sorted({int(b[:4]) for b in rows for b in [b[0] if isinstance(b,tuple) else b]})
+    xt = "".join(f'<text x="{x(i):.1f}" y="{H-8}" class="ct" text-anchor="middle">{b[:4]}</text>'
+                 for i, (b, *_ ) in enumerate(rows)
+                 if b.endswith("H1") and int(b[:4]) % 2 == 0)
+    tbl = "".join(f"<tr><td>{b}</td><td>{p1*100:.1f}%</td><td>{p2*100:.1f}%</td>"
+                  f"<td>{ex*100:+.1f}%</td></tr>" for b, ex, p1, p2 in rows)
+    return f"""
+    <figure class="pchart">
+      <figcaption><strong>A political crowd did move in — arriving with the wedge.</strong>
+      Excess share of r/pics posters also posting in political subreddits that same half-year, over the
+      r/aww baseline crowd (80 sampled authors per bucket, titles never read). Single bars inside the shaded
+      band are sampling noise — but pooling 2024&#8202;H2–2026&#8202;H1, the pics crowd is politically co-active at
+      10.0% vs the baseline's 1.9% (odds ratio 5.8, p=1.4e-05; excluding borderline subs it sharpens to
+      8.1% vs 1.2%, OR 7.0). The 2023 John Oliver spike, an in-community protest, correctly leaves no trace here.</figcaption>
+      <svg viewBox="0 0 {W} {H}" role="img" aria-label="Excess political co-activity of r/pics posters over the r/aww baseline, 2008 to 2026">
+        <rect x="{ML}" y="{y(band):.1f}" width="{W-ML-MR}" height="{abs(y(band)-y(-band)):.1f}" class="cnoise"/>
+        {grid}
+        {xt}
+        <line x1="{ML}" y1="{y0:.1f}" x2="{W-MR}" y2="{y0:.1f}" class="czero"/>
+        {bars}
+        <text x="{W-MR+8}" y="{y(band)+4:.1f}" class="cel">noise band ±{band*100:.0f}pt</text>
+        <text x="{W-MR+8}" y="{y0+4:.1f}" class="cel">= same as baseline</text>
+      </svg>
+      <details class="cdata"><summary>data table (raw shares)</summary>
+        <table><tr><th>period</th><th>r/pics</th><th>r/aww</th><th>excess</th></tr>{tbl}</table>
+      </details>
+    </figure>"""
+
+
 deep_cards = ""
 for sub in ("politics", "conspiracy", "Conservative", "PublicFreakout", "pics"):
     d, f = deep.get(sub, {}), FUNNELS[sub]
@@ -140,7 +210,7 @@ for sub in ("politics", "conspiracy", "Conservative", "PublicFreakout", "pics"):
       <p class="deep-verdict">“{esc(d.get("honest_name",""))}”</p>
       <div class="gates">{gates}</div>
       <p class="deep-desc">{esc(d.get("honest_description",""))}</p>
-      {pics_chart() if sub == "pics" else ""}
+      {(pics_chart() + crowd_chart()) if sub == "pics" else ""}
     </article>'''
 
 ledger = ""
@@ -268,6 +338,9 @@ h2{font-size:1.45rem;font-weight:600;margin:2.6rem 0 .4rem}
 .clr{fill:none;stroke:var(--cR);stroke-width:2;stroke-linejoin:round}
 .cda{fill:var(--cA)} .cdr{fill:var(--cR)}
 .cann{stroke:var(--mut);stroke-width:1;stroke-dasharray:3 3}
+.cba{fill:var(--cA)} .cbr{fill:var(--cR);opacity:.55}
+.cnoise{fill:var(--mut);opacity:.10}
+.czero{stroke:var(--ink);stroke-width:1;opacity:.5}
 .cel{font:600 11.5px "Source Sans 3",sans-serif;fill:var(--mut)}
 .cela{fill:var(--cA)}
 .ctip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 9px;font:400 11px "IBM Plex Mono",monospace;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap}
