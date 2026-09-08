@@ -77,14 +77,26 @@ MEASURED (3,804 stance-classified 2025-26 posts + keyword trend on 2023-26):
 def main():
     lm = LMStudio()
     meta = targets_meta()
-    out = {}
+    out_p = pathlib.Path("data/out/deep_descriptions.json")
+    out = json.loads(out_p.read_text()) if out_p.exists() else {}
     for sub, sheet in SHEETS.items():
-        r = lm.chat_json(SYSTEM, sheet, SCHEMA, max_tokens=8000, temperature=0.4)
+        if sub in out:
+            print(f"{sub}: kept existing", flush=True)
+            continue
+        budget = 8000
+        for attempt in range(3):
+            try:
+                r = lm.chat_json(SYSTEM, sheet, SCHEMA, max_tokens=budget, temperature=0.4)
+                break
+            except Exception:
+                if attempt == 2:
+                    raise
+                budget *= 2  # reasoning overrun killed a run at a fixed 8k
         r["subreddit"] = sub
         r["subscribers"] = meta.get(sub, {}).get("subscribers")
         out[sub] = r
-        print(json.dumps(r, indent=1), flush=True)
-    pathlib.Path("data/out/deep_descriptions.json").write_text(json.dumps(out, indent=1))
+        out_p.write_text(json.dumps(out, indent=1))  # save per sub, not at the end
+        print(f"{sub}: done", flush=True)
 
 
 if __name__ == "__main__":
