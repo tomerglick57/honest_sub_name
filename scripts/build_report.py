@@ -72,7 +72,8 @@ def pics_chart() -> str:
     """
     ts = json.loads(pathlib.Path("data/out/pics_timeseries.json").read_text())
     W, H, ML, MR, MT, MB = 660, 250, 40, 158, 14, 30
-    ymax = 0.30
+    peak = max(max(r["top"] for r in ts), max(r["raw"] for r in ts))
+    ymax = 0.10 * (int(peak * 10) + 1)  # next 10% step above the data
     n = len(ts)
     def x(i): return ML + i * (W - ML - MR) / (n - 1)
     def y(v): return MT + (1 - min(v, ymax) / ymax) * (H - MT - MB)
@@ -82,11 +83,15 @@ def pics_chart() -> str:
     wedge = pl(top) + " " + pl(list(reversed(raw)))
     grid = "".join(
         f'<line x1="{ML}" y1="{y(v):.1f}" x2="{W-MR}" y2="{y(v):.1f}" class="cg"/>' 
-        f'<text x="{ML-6}" y="{y(v)+4:.1f}" class="ct" text-anchor="end">{int(v*100)}%</text>'
-        for v in (0, .10, .20, .30))
+        f'<text x="{ML-6}" y="{y(v)+4:.1f}" class="ct" text-anchor="end">{int(round(v*100))}%</text>'
+        for v in [i * 0.10 for i in range(int(ymax * 10) + 1)])
+    years = sorted({int(r["label"][:4]) for r in ts})
+    tick_every = 1 if len(years) <= 6 else 2
     xt = "".join(f'<text x="{x(i):.1f}" y="{H-8}" class="ct" text-anchor="middle">{r["label"][:4]}</text>'
-                 for i, r in enumerate(ts) if r["label"].endswith("H1"))
-    ann_x = x(4)  # 2025 H1: removal regime triples
+                 for i, r in enumerate(ts)
+                 if r["label"].endswith("H1") and int(r["label"][:4]) % tick_every == 0)
+    ann_i = next(i for i, r in enumerate(ts) if r["label"] == "2025 H1")
+    ann_x = x(ann_i)
     dots = "".join(f'<circle cx="{a:.1f}" cy="{b:.1f}" r="3.5" class="cda"/>' for a, b in top) +            "".join(f'<circle cx="{a:.1f}" cy="{b:.1f}" r="3" class="cdr"/>' for a, b in raw)
     hover_meta = json.dumps([{"l": r["label"], "top": r["top"], "raw": r["raw"],
                               "rm": r["removal"], "x": round(x(i), 1)} for i, r in enumerate(ts)])
@@ -94,8 +99,10 @@ def pics_chart() -> str:
                   f"<td>{r['top']*100:.1f}%</td><td>{r['removal']*100:.1f}%</td></tr>" for r in ts)
     return f"""
     <figure class="pchart">
-      <figcaption><strong>The audience turned the front page political — the submissions didn't move.</strong>
-      Political share of r/pics posts, by half-year (keyword screen, survivors only).</figcaption>
+      <figcaption><strong>Eighteen years of photos, then the front page turned political — and the submissions never moved.</strong>
+      Political share of r/pics posts by half-year, 2008–2026 (keyword screen, survivors only). For twelve years
+      the two lines track each other — election-year blips in 2008 and 2016 included — until they split in 2024.
+      Removal tracking exists in the archive only from ~2019; earlier moderation is simply unrecorded, not absent.</figcaption>
       <div class="pchart-wrap">
       <svg viewBox="0 0 {W} {H}" role="img" aria-label="Political share of r/pics: top score decile rises from 0 to 27 percent while submissions stay under 7 percent">
         {grid}
@@ -108,7 +115,7 @@ def pics_chart() -> str:
         {dots}
         <text x="{W-MR+8}" y="{top[-1][1]+4:.1f}" class="cel cela">of top-scoring posts: {ts[-1]['top']*100:.0f}%</text>
         <text x="{W-MR+8}" y="{raw[-1][1]+4:.1f}" class="cel">of submissions: {ts[-1]['raw']*100:.0f}%</text>
-        <text x="{(ML+W-MR)/2:.1f}" y="{(y(ts[5]['top'])+y(ts[5]['raw']))/2:.1f}" class="ct cwl" text-anchor="middle">the audience's editorial hand</text>
+        <text x="{x(len(ts)-4):.1f}" y="{(y(ts[len(ts)-4]['top'])+y(ts[len(ts)-4]['raw']))/2:.1f}" class="ct cwl" text-anchor="end">the audience's editorial hand</text>
       </svg>
       <div class="ctip" hidden></div>
       </div>
