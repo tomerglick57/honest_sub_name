@@ -196,6 +196,82 @@ def crowd_chart() -> str:
     </figure>"""
 
 
+def sided_chart() -> str:
+    """One-sided r/pics posts per year, by side: diverging bars around zero.
+
+    Left-sided per 1,000 surviving posts extends up (blue), right-sided down
+    (red). Counts come from stance-classifying every keyword-political
+    surviving title 2008-2026; neutral (N) and off-topic (X) posts are
+    excluded -- this panel shows only posts that argue a side.
+    """
+    lab_p = pathlib.Path("data/out/slant_labels/pics.hist.jsonl")
+    if not lab_p.exists():
+        return ""
+    import datetime as _dt
+    from collections import defaultdict as _dd
+    labs = [json.loads(l) for l in lab_p.read_text().splitlines() if l.strip()]
+    if len(labs) < 900:
+        return ""
+    ts = json.loads(pathlib.Path("data/out/pics_timeseries.json").read_text())
+    surv_year = _dd(int)
+    for r in ts:
+        surv_year[int(r["label"][:4])] += r["n"]
+    cnt = _dd(lambda: [0, 0])
+    for r in labs:
+        y = _dt.datetime.fromtimestamp(r["created_utc"], _dt.timezone.utc).year
+        if r["label"] == "A":
+            cnt[y][0] += 1
+        elif r["label"] == "B":
+            cnt[y][1] += 1
+    # iterate the CORPUS years, not the label years: a year with zero sided
+    # posts must keep its place on the axis -- dropping it splices time and
+    # silently hides the quiet years, which are part of the story
+    years = sorted(y for y in surv_year if surv_year[y] >= 500)
+    rows = [(y, 1000 * cnt[y][0] / surv_year[y], 1000 * cnt[y][1] / surv_year[y],
+             cnt[y][0], cnt[y][1]) for y in years]
+    W, H, ML, MR, MT, MB = 660, 220, 40, 158, 14, 30
+    peak = max(max(a for _, a, b, *_ in rows), max(b for _, a, b, *_ in rows)) * 1.15
+    y0 = MT + (H - MT - MB) * peak / (2 * peak)
+    def ya(v): return y0 - v / peak * (H - MT - MB) / 2
+    def x(i): return ML + i * (W - ML - MR) / (len(rows) - 1)
+    bw = max(4.0, (W - ML - MR) / len(rows) - 3)
+    bars = ""
+    for i, (y, a, b, *_ ) in enumerate(rows):
+        if a > 0:
+            bars += f'<rect x="{x(i)-bw/2:.1f}" y="{ya(a):.1f}" width="{bw:.1f}" height="{max(y0-ya(a),0.5):.1f}" rx="1.5" class="csl"/>'
+        if b > 0:
+            bars += f'<rect x="{x(i)-bw/2:.1f}" y="{y0+1:.1f}" width="{bw:.1f}" height="{max(ya(-b)-y0,0.5):.1f}" rx="1.5" class="csr"/>'
+    gv = [v for v in (10, 20, 30) if v <= peak]
+    grid = "".join(
+        f'<line x1="{ML}" y1="{ya(v):.1f}" x2="{W-MR}" y2="{ya(v):.1f}" class="cg"/>' 
+        f'<text x="{ML-6}" y="{ya(v)+4:.1f}" class="ct" text-anchor="end">{v}</text>'
+        f'<line x1="{ML}" y1="{ya(-v):.1f}" x2="{W-MR}" y2="{ya(-v):.1f}" class="cg"/>' 
+        f'<text x="{ML-6}" y="{ya(-v)+4:.1f}" class="ct" text-anchor="end">{v}</text>'
+        for v in gv)
+    xt = "".join(f'<text x="{x(i):.1f}" y="{H-8}" class="ct" text-anchor="middle">{y}</text>'
+                 for i, (y, *_ ) in enumerate(rows) if y % 2 == 0)
+    tbl = "".join(f"<tr><td>{y}</td><td>{la}</td><td>{lb}</td><td>{a:.1f}</td><td>{b:.1f}</td></tr>"
+                  for y, a, b, la, lb in rows)
+    return f"""
+    <figure class="pchart">
+      <figcaption><strong>The one-sided posts themselves: two left-advocacy waves — Obama 2008 and 2024–26 — and right-leaning advocacy never materialises.</strong>
+      Posts arguing a political side, per 1,000 surviving posts and per year (model-labeled at 89% measured
+      stability; neutral political posts excluded). The 2008 wave (20 left vs 3 right) reached nearly the same
+      rate as 2026 (24 vs 2) — what is new since 2024 is that the wave did not recede.</figcaption>
+      <svg viewBox="0 0 {W} {H}" role="img" aria-label="One-sided r/pics posts per 1,000 per year: left-leaning up in blue, right-leaning down in red">
+        {grid}
+        {xt}
+        <line x1="{ML}" y1="{y0:.1f}" x2="{W-MR}" y2="{y0:.1f}" class="czero"/>
+        {bars}
+        <text x="{W-MR+8}" y="{ya(peak*0.55)+4:.1f}" class="cel csll">▲ left-leaning /1k</text>
+        <text x="{W-MR+8}" y="{ya(-peak*0.55)+4:.1f}" class="cel csrl">▼ right-leaning /1k</text>
+      </svg>
+      <details class="cdata"><summary>data table</summary>
+        <table><tr><th>year</th><th>left n</th><th>right n</th><th>left /1k</th><th>right /1k</th></tr>{tbl}</table>
+      </details>
+    </figure>"""
+
+
 deep_cards = ""
 for sub in ("politics", "conspiracy", "Conservative", "PublicFreakout", "pics"):
     d, f = deep.get(sub, {}), FUNNELS[sub]
@@ -210,7 +286,7 @@ for sub in ("politics", "conspiracy", "Conservative", "PublicFreakout", "pics"):
       <p class="deep-verdict">“{esc(d.get("honest_name",""))}”</p>
       <div class="gates">{gates}</div>
       <p class="deep-desc">{esc(d.get("honest_description",""))}</p>
-      {(pics_chart() + crowd_chart()) if sub == "pics" else ""}
+      {(pics_chart() + sided_chart() + crowd_chart()) if sub == "pics" else ""}
     </article>'''
 
 ledger = ""
@@ -246,21 +322,21 @@ page = '''<title>The Honest Subreddit Audit</title>
   --accent:#0F5D5A; --accent-ink:#0B4744;
   --sev-none:#6B7A4F; --sev-mild:#B08A2E; --sev-moderate:#C46A1D; --sev-severe:#A83226;
   --chipbg-none:#EEF1E6; --chipbg-mild:#F5EDD8; --chipbg-moderate:#F7E6D6; --chipbg-severe:#F5DDD9;
-  --cA:#0B655D; --cR:#8A948E;
+  --cA:#0B655D; --cR:#8A948E; --cL:#3E6FA6; --cRt:#B04A38;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#151A18; --panel:#1D2320; --ink:#E4E8E3; --mut:#95A099; --line:#323B36;
   --accent:#4FB3AC; --accent-ink:#6BC5BE;
   --sev-none:#93A66E; --sev-mild:#CBA84E; --sev-moderate:#D98B45; --sev-severe:#CC6055;
   --chipbg-none:#252E22; --chipbg-mild:#2F2A1B; --chipbg-moderate:#32271B; --chipbg-severe:#33211F;
-  --cA:#5FC5BD; --cR:#67716B;
+  --cA:#5FC5BD; --cR:#67716B; --cL:#5794DB; --cRt:#D66C50;
 }}
 :root[data-theme="dark"]{
   --paper:#151A18; --panel:#1D2320; --ink:#E4E8E3; --mut:#95A099; --line:#323B36;
   --accent:#4FB3AC; --accent-ink:#6BC5BE;
   --sev-none:#93A66E; --sev-mild:#CBA84E; --sev-moderate:#D98B45; --sev-severe:#CC6055;
   --chipbg-none:#252E22; --chipbg-mild:#2F2A1B; --chipbg-moderate:#32271B; --chipbg-severe:#33211F;
-  --cA:#5FC5BD; --cR:#67716B;
+  --cA:#5FC5BD; --cR:#67716B; --cL:#5794DB; --cRt:#D66C50;
 }
 body{background:var(--paper);color:var(--ink);font:16px/1.55 "Source Sans 3",system-ui,sans-serif;margin:0}
 .wrap{max-width:1060px;margin:0 auto;padding:40px 20px 80px}
@@ -340,6 +416,8 @@ h2{font-size:1.45rem;font-weight:600;margin:2.6rem 0 .4rem}
 .cann{stroke:var(--mut);stroke-width:1;stroke-dasharray:3 3}
 .cba{fill:var(--cA)} .cbr{fill:var(--cR);opacity:.55}
 .cnoise{fill:var(--mut);opacity:.10}
+.csl{fill:var(--cL)} .csr{fill:var(--cRt)}
+.csll{fill:var(--cL)} .csrl{fill:var(--cRt)}
 .czero{stroke:var(--ink);stroke-width:1;opacity:.5}
 .cel{font:600 11.5px "Source Sans 3",sans-serif;fill:var(--mut)}
 .cela{fill:var(--cA)}
