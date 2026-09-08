@@ -60,6 +60,64 @@ FUNNELS = {
 LEAN = {"left": ("◀ pushes left", "lean-l"), "right": ("pushes right ▶", "lean-r"),
         "even": ("· even ·", "lean-e")}
 
+
+def pics_chart() -> str:
+    """Emphasis line chart: what r/pics' audience elevates vs what gets posted.
+
+    Two series on one axis; the filled wedge between them is the finding
+    (the audience's editorial hand). The 2025 moderation regime change is an
+    annotation, not a third line. Colors validated for both themes (CVD,
+    normal-vision floor, contrast); the de-emphasis gray is intentional and
+    both series carry direct labels, so identity is never color-alone.
+    """
+    ts = json.loads(pathlib.Path("data/out/pics_timeseries.json").read_text())
+    W, H, ML, MR, MT, MB = 660, 250, 40, 158, 14, 30
+    ymax = 0.30
+    n = len(ts)
+    def x(i): return ML + i * (W - ML - MR) / (n - 1)
+    def y(v): return MT + (1 - min(v, ymax) / ymax) * (H - MT - MB)
+    top = [(x(i), y(r["top"])) for i, r in enumerate(ts)]
+    raw = [(x(i), y(r["raw"])) for i, r in enumerate(ts)]
+    pl = lambda pts: " ".join(f"{a:.1f},{b:.1f}" for a, b in pts)
+    wedge = pl(top) + " " + pl(list(reversed(raw)))
+    grid = "".join(
+        f'<line x1="{ML}" y1="{y(v):.1f}" x2="{W-MR}" y2="{y(v):.1f}" class="cg"/>' 
+        f'<text x="{ML-6}" y="{y(v)+4:.1f}" class="ct" text-anchor="end">{int(v*100)}%</text>'
+        for v in (0, .10, .20, .30))
+    xt = "".join(f'<text x="{x(i):.1f}" y="{H-8}" class="ct" text-anchor="middle">{r["label"][:4]}</text>'
+                 for i, r in enumerate(ts) if r["label"].endswith("H1"))
+    ann_x = x(4)  # 2025 H1: removal regime triples
+    dots = "".join(f'<circle cx="{a:.1f}" cy="{b:.1f}" r="3.5" class="cda"/>' for a, b in top) +            "".join(f'<circle cx="{a:.1f}" cy="{b:.1f}" r="3" class="cdr"/>' for a, b in raw)
+    hover_meta = json.dumps([{"l": r["label"], "top": r["top"], "raw": r["raw"],
+                              "rm": r["removal"], "x": round(x(i), 1)} for i, r in enumerate(ts)])
+    tbl = "".join(f"<tr><td>{r['label']}</td><td>{r['raw']*100:.1f}%</td>"
+                  f"<td>{r['top']*100:.1f}%</td><td>{r['removal']*100:.1f}%</td></tr>" for r in ts)
+    return f"""
+    <figure class="pchart">
+      <figcaption><strong>The audience turned the front page political — the submissions didn't move.</strong>
+      Political share of r/pics posts, by half-year (keyword screen, survivors only).</figcaption>
+      <div class="pchart-wrap">
+      <svg viewBox="0 0 {W} {H}" role="img" aria-label="Political share of r/pics: top score decile rises from 0 to 27 percent while submissions stay under 7 percent">
+        {grid}
+        <polygon points="{wedge}" class="cwedge"/>
+        <line x1="{ann_x:.1f}" y1="{MT}" x2="{ann_x:.1f}" y2="{H-MB}" class="cann"/>
+        <text x="{ann_x+5:.1f}" y="{MT+10}" class="ct">mod removal triples (12%→46%)</text>
+        <polyline points="{pl(raw)}" class="clr"/>
+        <polyline points="{pl(top)}" class="cla"/>
+        {dots}
+        <text x="{W-MR+8}" y="{top[-1][1]+4:.1f}" class="cel cela">of top-scoring posts: {ts[-1]['top']*100:.0f}%</text>
+        <text x="{W-MR+8}" y="{raw[-1][1]+4:.1f}" class="cel">of submissions: {ts[-1]['raw']*100:.0f}%</text>
+        <text x="{(ML+W-MR)/2:.1f}" y="{(y(ts[5]['top'])+y(ts[5]['raw']))/2:.1f}" class="ct cwl" text-anchor="middle">the audience's editorial hand</text>
+      </svg>
+      <div class="ctip" hidden></div>
+      </div>
+      <details class="cdata"><summary>data table</summary>
+        <table><tr><th>period</th><th>submitted</th><th>top decile</th><th>mod-removal</th></tr>{tbl}</table>
+      </details>
+    </figure>
+    <script>window.__pics_ts={hover_meta};</script>"""
+
+
 deep_cards = ""
 for sub in ("politics", "conspiracy", "Conservative", "PublicFreakout", "pics"):
     d, f = deep.get(sub, {}), FUNNELS[sub]
@@ -74,6 +132,7 @@ for sub in ("politics", "conspiracy", "Conservative", "PublicFreakout", "pics"):
       <p class="deep-verdict">“{esc(d.get("honest_name",""))}”</p>
       <div class="gates">{gates}</div>
       <p class="deep-desc">{esc(d.get("honest_description",""))}</p>
+      {pics_chart() if sub == "pics" else ""}
     </article>'''
 
 ledger = ""
@@ -109,18 +168,21 @@ page = '''<title>The Honest Subreddit Audit</title>
   --accent:#0F5D5A; --accent-ink:#0B4744;
   --sev-none:#6B7A4F; --sev-mild:#B08A2E; --sev-moderate:#C46A1D; --sev-severe:#A83226;
   --chipbg-none:#EEF1E6; --chipbg-mild:#F5EDD8; --chipbg-moderate:#F7E6D6; --chipbg-severe:#F5DDD9;
+  --cA:#0B655D; --cR:#8A948E;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#151A18; --panel:#1D2320; --ink:#E4E8E3; --mut:#95A099; --line:#323B36;
   --accent:#4FB3AC; --accent-ink:#6BC5BE;
   --sev-none:#93A66E; --sev-mild:#CBA84E; --sev-moderate:#D98B45; --sev-severe:#CC6055;
   --chipbg-none:#252E22; --chipbg-mild:#2F2A1B; --chipbg-moderate:#32271B; --chipbg-severe:#33211F;
+  --cA:#5FC5BD; --cR:#67716B;
 }}
 :root[data-theme="dark"]{
   --paper:#151A18; --panel:#1D2320; --ink:#E4E8E3; --mut:#95A099; --line:#323B36;
   --accent:#4FB3AC; --accent-ink:#6BC5BE;
   --sev-none:#93A66E; --sev-mild:#CBA84E; --sev-moderate:#D98B45; --sev-severe:#CC6055;
   --chipbg-none:#252E22; --chipbg-mild:#2F2A1B; --chipbg-moderate:#32271B; --chipbg-severe:#33211F;
+  --cA:#5FC5BD; --cR:#67716B;
 }
 body{background:var(--paper);color:var(--ink);font:16px/1.55 "Source Sans 3",system-ui,sans-serif;margin:0}
 .wrap{max-width:1060px;margin:0 auto;padding:40px 20px 80px}
@@ -185,6 +247,27 @@ h2{font-size:1.45rem;font-weight:600;margin:2.6rem 0 .4rem}
 .ev li{margin:.25rem 0}
 .method{font-size:.9rem;color:var(--mut);max-width:70ch}
 .method a{color:var(--accent-ink)}
+.pchart{margin:1.2rem 0 0;border-top:1px solid var(--line);padding-top:1rem}
+.pchart figcaption{font-size:.88rem;color:var(--mut);margin-bottom:.6rem;max-width:70ch}
+.pchart figcaption strong{color:var(--ink)}
+.pchart-wrap{position:relative}
+.pchart svg{width:100%;height:auto;display:block}
+.cg{stroke:var(--line);stroke-width:1}
+.ct{font:400 10.5px "IBM Plex Mono",monospace;fill:var(--mut)}
+.cwl{opacity:.85;font-style:italic}
+.cwedge{fill:var(--accent);opacity:.10}
+.cla{fill:none;stroke:var(--cA);stroke-width:2.25;stroke-linejoin:round}
+.clr{fill:none;stroke:var(--cR);stroke-width:2;stroke-linejoin:round}
+.cda{fill:var(--cA)} .cdr{fill:var(--cR)}
+.cann{stroke:var(--mut);stroke-width:1;stroke-dasharray:3 3}
+.cel{font:600 11.5px "Source Sans 3",sans-serif;fill:var(--mut)}
+.cela{fill:var(--cA)}
+.ctip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 9px;font:400 11px "IBM Plex Mono",monospace;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap}
+.cdata{margin-top:.4rem}
+.cdata summary{font:500 .72rem/1 "IBM Plex Mono",monospace;color:var(--mut);cursor:pointer}
+.cdata table{border-collapse:collapse;margin-top:.4rem;font:400 .78rem/1.5 "IBM Plex Mono",monospace}
+.cdata td,.cdata th{border:1px solid var(--line);padding:3px 10px;text-align:right}
+.cdata th:first-child,.cdata td:first-child{text-align:left}
 footer{margin-top:3rem;border-top:1px solid var(--line);padding-top:1rem;font:400 .74rem/1.6 "IBM Plex Mono",monospace;color:var(--mut)}
 @media (max-width:760px){
   .lhead{display:none}
@@ -258,6 +341,18 @@ document.querySelectorAll('.fbtn').forEach(b=>b.addEventListener('click',()=>{
   f=b.dataset.f;
   document.querySelectorAll('.fbtn').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));
   apply();}));
+const cw=document.querySelector('.pchart-wrap');
+if(cw&&window.__pics_ts){
+  const svg=cw.querySelector('svg'),tip=cw.querySelector('.ctip'),ts=window.__pics_ts;
+  svg.addEventListener('mousemove',e=>{
+    const r=svg.getBoundingClientRect(),sx=(e.clientX-r.left)*660/r.width;
+    let best=ts[0];for(const d of ts) if(Math.abs(d.x-sx)<Math.abs(best.x-sx)) best=d;
+    tip.hidden=false;
+    tip.innerHTML=`<b>${best.l}</b><br>top decile ${(best.top*100).toFixed(1)}%<br>submitted ${(best.raw*100).toFixed(1)}%<br>mod-removed ${(best.rm*100).toFixed(1)}%`;
+    const px=best.x*r.width/660;
+    tip.style.left=Math.min(px+12,r.width-150)+'px'; tip.style.top='18px';});
+  svg.addEventListener('mouseleave',()=>tip.hidden=true);
+}
 </script>'''
 
 out = pathlib.Path("data/out/honest_audit.html")
