@@ -99,6 +99,7 @@ def pics_chart() -> str:
       <div class="pchart-wrap">
       <svg viewBox="0 0 {W} {H}" role="img" aria-label="Political share of r/pics: top score decile rises from 0 to 27 percent while submissions stay under 7 percent">
         {grid}
+        {xt}
         <polygon points="{wedge}" class="cwedge"/>
         <line x1="{ann_x:.1f}" y1="{MT}" x2="{ann_x:.1f}" y2="{H-MB}" class="cann"/>
         <text x="{ann_x+5:.1f}" y="{MT+10}" class="ct">mod removal triples (12%→46%)</text>
