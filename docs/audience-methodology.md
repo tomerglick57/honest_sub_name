@@ -442,3 +442,22 @@ Verdict revision recorded honestly: the interim read (pics half only)
 leaned "same crowd, new votes"; the completed baseline flipped it. The 2024-26
 front-page politicization is accompanied by a measurable influx of politically
 active posters -- the wedge and the crowd arrived together.
+
+### Model migration validated (2026-09-09): gemma-4-31b-qat on 192.168.1.185
+
+All three gates re-run on the new user-designated backend, same protocols as
+the 26B baseline:
+
+| gate | 26B (local) | 31B (remote) |
+|---|---|---|
+| Q-pass probe (16 titles) | 16/16 | **16/16** |
+| stance stability, 3 passes x 36 titles | 89% identical | **100% identical** |
+| positive control left-share (Conservative / democrats) | 22% / 94% | **12% / 94%** |
+
+The 31B is cleaner on every axis: perfectly stable labels at temperature 0.6,
+wider control separation (82pt vs 72pt), and no temperature-0 reasoning loops.
+Cost: ~370-620 labels/hr vs ~1000/hr (the control batches ran at ~390/hr under
+concurrent load). Existing measured results remain 26B-labeled; the two models
+agree at the validation level, so cross-model pooling of labels is acceptable
+for composition counts but re-labeling is preferred for any new asymmetry
+test that pools old and new data.
