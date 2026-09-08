@@ -54,7 +54,7 @@ FUNNELS = {
       ("The change", "left", "2025: removal tripled to ~46% and stayed; political share of the top score decile went 3% (2023) → 33% (2026)"),
       ("Who posts", "even", "explicit advocacy is rare — 1.8% of posts take a side (49 L : 18 R); the submission stream is still photos"),
       ("Moderators", "even", "heavy removal is direction-neutral · OR 0.78 · p=0.78 — volume control, not stance control"),
-      ("Voters", "left", "politicization lives here: political topics elevated to a third of the front-page tier; sided sample too thin for a direction (18 R) — topic claim, not stance claim"),
+      ("Voters", "left", "politicization lives here: political topics elevated to a third of the front-page tier; the sided minority runs 73% left (49:18, p=2e-4) — differential treatment of the sides unmeasured at n=18 R"),
     ]},
 }
 LEAN = {"left": ("◀ pushes left", "lean-l"), "right": ("pushes right ▶", "lean-r"),
