@@ -56,6 +56,21 @@ MEASURED FUNNEL (8,004 stance-classified posts):
 - Combined visibility: after moderation and voting, the visible sub is ~96% left.
 - Retention (visitor-controlled): right-advocacy REGULARS return less even when their posts were kept (82% vs 93%, p=6.4e-4). Right advocates are also twice as often drive-by visitors (24% vs 13%).
 - Self-deletion: right posters withdraw their own posts at ~2x odds (OR 0.51, p=0.047 -- marginal, treat as suggestive).""",
+"PublicFreakout": """# r/PublicFreakout (4.7M subscribers; sidebar: "people freaking out, melting down, losing their cool, or being weird in public" -- no political mandate)
+MEASURED FUNNEL (3,804 stance-classified posts, 2023-2026):
+- Posted content: 92% of posts are not politically sided at all (street fights, meltdowns, arguments). Among the sided 8%, LEFT outnumbers right 5.9:1 (242 vs 41) -- the most lopsided composition of any audited sub.
+- Moderators: no significant stance asymmetry (advocacy-only OR=0.61, p=0.20). Removal is direction-neutral.
+- Voters: bury surviving right advocacy hard -- median percentile 0.17 vs 0.64 for left (rank-biserial 0.63, p=1.8e-05).
+- Retention (visitor-controlled): right-advocacy REGULARS return at 47% vs 86% for left even when their posts were kept (p=0.001); visitor shares are equal (22% both sides), so this is not a visitor artifact.
+- Self-deletion: no significant asymmetry (p=0.27).""",
+"pics": """# r/pics, 2025-2026 era only (31M subscribers; sidebar: "a place for photographs, pictures, and other images")
+MEASURED (3,804 stance-classified 2025-26 posts + keyword trend on 2023-26):
+- The sub CHANGED in 2025: moderator removal tripled from ~14% to ~46% of all submissions and stayed there; in 2025-26 removals now outnumber keeps (6,079 vs 5,369 in the deep sample).
+- Politicization is in the votes, not the submissions: political content is only ~5% of what is posted but rose from 3% of the top score decile in 2023 to 33% in 2026 (keyword screen). The front page turned into political photojournalism; the submission stream did not.
+- Explicit ADVOCACY remains rare: only 1.8% of classified posts take a side (49 left vs 18 right).
+- Moderation shows no directional stance bias (OR=0.78, p=0.78); the heavy removal is direction-neutral volume control.
+- Vote direction and retention: sided sample too small to measure (right n=6); no directional claim is supported either way.
+- The pooled 3-year ledger verdict ("no gap") is accurate for 2023-24 and misleading for 2025-26.""",
 }
 
 

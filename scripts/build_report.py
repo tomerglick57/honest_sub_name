@@ -42,12 +42,26 @@ FUNNELS = {
       ("Voters", "left", "median percentile: left .70, right .13 · rank-biserial 0.757 · p=8.7e-38 · top decile 142:1"),
       ("Who stays", "left", "kept right regulars still return less: 82% vs 93% · p=6.4e-4"),
     ]},
+  "PublicFreakout": {"subtitle": "4.7M subscribers · 3,804 posts stance-classified · sidebar promises no politics at all",
+    "gates": [
+      ("Who posts", "left", "92% not politically sided; among the sided 8%, left outnumbers right 5.9 : 1 (242 vs 41) — the most lopsided composition audited"),
+      ("Moderators", "even", "no significant stance asymmetry · OR 0.61 · p=0.20 — removal is direction-neutral"),
+      ("Voters", "left", "bury surviving right advocacy · median percentile .17 vs .64 · rank-biserial 0.63 · p=1.8e-05"),
+      ("Who stays", "left", "kept right regulars return 47% vs 86% (p=0.001); visitor shares equal at 22%, so not a visitor artifact"),
+    ]},
+  "pics": {"subtitle": "31M subscribers · 2025–26 era funnel · the audit's first time-resolved entry",
+    "gates": [
+      ("The change", "left", "2025: removal tripled to ~46% and stayed; political share of the top score decile went 3% (2023) → 33% (2026)"),
+      ("Who posts", "even", "explicit advocacy is rare — 1.8% of posts take a side (49 L : 18 R); the submission stream is still photos"),
+      ("Moderators", "even", "heavy removal is direction-neutral · OR 0.78 · p=0.78 — volume control, not stance control"),
+      ("Voters", "left", "politicization lives here: political topics elevated to a third of the front-page tier; sided sample too thin for a direction (18 R) — topic claim, not stance claim"),
+    ]},
 }
 LEAN = {"left": ("◀ pushes left", "lean-l"), "right": ("pushes right ▶", "lean-r"),
         "even": ("· even ·", "lean-e")}
 
 deep_cards = ""
-for sub in ("politics", "conspiracy", "Conservative"):
+for sub in ("politics", "conspiracy", "Conservative", "PublicFreakout", "pics"):
     d, f = deep.get(sub, {}), FUNNELS[sub]
     gates = "".join(
         f'<div class="gate"><div class="gate-head"><span class="gate-name">{esc(g)}</span>'

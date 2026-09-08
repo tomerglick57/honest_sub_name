@@ -393,3 +393,27 @@ odds, p=0.047) -- suggestive only.
 four-gate funnel profiles for r/politics, r/conspiracy, r/Conservative with
 visitor-controlled retention. Deep-dive names were set deterministically after
 the model twice echoed the sub's own name despite instruction.
+
+### Night of 2026-09-07/08: r/PublicFreakout and r/pics (2025-26) through the funnel
+
+**r/PublicFreakout** ("people freaking out in public", no political mandate):
+92% of posts are not politically sided; the sided 8% run 5.9:1 LEFT (242 vs
+41), the most lopsided composition audited. Moderation is direction-neutral
+(OR=0.61, p=0.20). Voters bury surviving right advocacy (median percentile
+.17 vs .64, rb=0.63, p=1.8e-05), and right-advocacy regulars quit even when
+their posts are kept (47% vs 86% return, p=0.001, visitor shares equal at
+22%). The character mechanism mirrors r/politics -- audience-enforced -- under
+a name that promises no politics at all. Label audit: one visible mislabel in
+14 sampled advocacy titles, consistent with measured noise.
+
+**r/pics, time-resolved** (the audit's first era-split entry): the pooled
+verdict ("no gap") is right for 2023-24 and wrong after. In 2025 removal
+tripled to ~46% and removals now exceed keeps; political subjects rose from
+3% to 33% of the top score decile by 2026 (keyword screen) while explicit
+advocacy stayed rare (1.8% of posts, 49L:18R). Removal is direction-neutral
+(p=0.78). The politicization is topical and vote-driven; the sided sample is
+too thin (18 R) for any directional stance claim, and none is made.
+
+**Methodology lesson recorded:** a pooled multi-year verdict can be clean
+while the sub changes underneath it. Time-resolved checks (removal trajectory,
+visibility-weighted topic share by year) belong in the standard pipeline.
