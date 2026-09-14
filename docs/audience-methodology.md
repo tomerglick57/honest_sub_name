@@ -461,3 +461,172 @@ concurrent load). Existing measured results remain 26B-labeled; the two models
 agree at the validation level, so cross-model pooling of labels is acceptable
 for composition counts but re-labeling is preferred for any new asymmetry
 test that pools old and new data.
+
+### r/pics census and the front-page monitor (2026-09-12)
+
+**Why the earlier r/pics series was replaced.** `harvest_subreddit` walks
+each window ascending and stops at its quota, so every stratum is the opening
+hours of its window: 37,000 of the 45,000 historical r/pics posts fall in the
+first week of a quarter, most within hours of midnight on Jan 1 / Apr 1 /
+Jul 1 / Oct 1. The "top decile" in `pics_timeseries.json` was the top of a few
+hundred early-morning posts, not the front page. The "twelve flat years, then
+the 2024 split" reading rests on that sample and does not survive the census.
+
+**Census.** `scripts/census.py` walked every r/pics post, 2008-01 to 2026-09:
+8,281,820 posts in 163 minutes (two workers, `limit=auto`), every completed
+month within 0.13% of Arctic Shift's own monthly count.
+
+**M8, front-page political share.** Each UTC day's ten highest-scoring posts
+by final score, removed posts included, title labeled O / P / L / R by
+gemma-4-31b-qat on the LAN host with reasoning off (`honest_sub/topic.py`,
+`scripts/frontpage_label.py`). Ranking within the day cancels traffic growth
+and score inflation. Submissions are a seeded random 100 posts per month drawn
+from the census (`honest_sub/frontpage.py`, shared by labeler and analysis).
+
+| label check | result |
+|---|---|
+| two passes, temperature 0 | 79/80 identical |
+| 261 stratified titles re-labeled with reasoning on | political-vs-not 96.2% (κ 0.91; 92.0% on 2024–26), four-way 86.2% (κ 0.81) |
+| side disagreements | fast labels err toward R (8 R→L vs 2 L→R): the L:R imbalance is understated |
+| r/pics' own "Politics" flair on front-page posts | 79% labeled political; misses are image-only captions ("Mittens", "This is America") and people in the news after the model's training |
+
+Titles only, never images: every share is a floor, most of all in the latest
+months, where the model does not recognise the names.
+
+**M9, comment index.** Share of ALL comments matching a fixed 21-term US
+political vocabulary, counted server-side with Arctic Shift's aggregate
+endpoint over ~125M r/pics comments, against r/mildlyinteresting. Two archive
+behaviours had to be engineered around, both now in the README: windows not
+starting at UTC midnight return HTTP 200 with zero-count buckets (the first
+run undercounted about tenfold: 154 recorded vs 1,533 true for
+mildlyinteresting 2024-01), and election-week days time out even as one-day
+windows, so they are counted in hour-aligned 6-hour pieces (verified exact:
+10+3+171+3 = 187). Verification: 12 months, six per sub, 2008–2024, recounted
+day by day: 12/12 exact.
+
+| period | r/pics comments naming US politics | × baseline |
+|---|---|---|
+| 2009–2015 | 0.3–0.7% | 2.5–4× |
+| 2016 | 3.0% | 6× |
+| 2017–2019 | 2.5–4.0% | ~10× |
+| 2020 | 5.0% | 13× |
+| 2022–2023 | 2.8–3.0% | 6–7× |
+| 2024 | 9.0% (Jul–Nov 2024: 10.6–14.3%) | 17× |
+| 2025 / 2026 | 7.9% / 5.5% | 14× / 13× |
+
+**Moderation, from the census.** Removal is recorded in the archive from 2019.
+Moderator removal of all submissions: 13% (2020), 24% (2022), 13% (2023), 15%
+(2024), 41% (2025), 47% (2026). Locked posts 34% and 44% in 2025–26, mostly
+alongside removal. Author self-deletion is not comparable across eras (23–34%
+in 2020–22, under 5% after 2023: a change in archive capture, not behaviour)
+and is not used.
+
+**Front page, final** (every day 2008-01 to 2026-09; 90,148 titles labeled,
+0 failed batches). A typical 2008–2015 month was 4.8% political (10th–90th
+percentile 2.9–8.2%); years ran 3.7–6.3% in 2009–2016. Waves of 8–19% a year
+followed in 2017–2023; then 34% in 2024, 44% in 2025, 41% in 2026 to date.
+Every week since 15 January 2024, 138 in a row, has been above the 2008–2015
+90th-percentile month; before 2016 a typical year had about eight such weeks.
+Submissions went from ~4.6% political (2008–15) to 9–13% (2024–26): what gets
+posted rose about 2×, what reaches the top about 7×, so the audience's lift
+grew from ~1.2× to ~4×.
+
+Sides: 2,121 left-sided vs 322 right-sided front-page posts overall; 186:77
+before 2016, 1,155:139 since 2024.
+
+Cross-checks independent of the model: a keyword screen and r/pics' own
+"Politics" flair on the same front-page posts track the model's series month
+by month (common peaks Aug 2024, Feb–Mar 2025, Jan 2026) and confirm a real
+easing in Aug–Sep 2026 (model 23% / keyword 11% / flair 9% in August). The
+John Oliver protest (June–July 2023) does not leak in: 22 of 385 front-page
+titles naming him were labeled political.
+
+Front-page removal by moderators, political vs other: no difference in
+2020–21; 15.8% vs 9.3% pooled over 2022–23 (OR 1.83, Fisher p=6.8e-10); from
+2024 almost no front-page removals are recorded for either (0.1–1.2%) while
+all-submission removal reached 41–47%. That cross-era drop may be archive
+capture (late removals recorded less for recent posts), so only within-year
+comparisons are reported.
+
+**Newcomers vs regulars (tenure from the census).** Every author's first
+r/pics post is known back to 2008, so each front-page post splits into
+newcomer (first r/pics post under a year earlier, the first included) or
+regular (a year or more); deleted accounts are left out, 2008 skipped.
+
+| political share of front-page posts | 2010–15 | 2016–23 | 2024 on |
+|---|---|---|---|
+| newcomers | 4.5% | 12.9% | 42.9% |
+| regulars | 4.8% | 12.5% | 35.4% |
+
+Newcomers' submissions since 2024: 12.8% political vs 8.2% for regulars.
+Posters who first appeared in 2024 or later made 69% of the 2025–26 political
+front page while being 63% of the front page. Shift-share, 2010–15 to
+2024–26 (+34.9 points): newcomers becoming more political +23.2, regulars
++10.2, change in who reaches the front page +1.8. Read together with the crowd
+co-activity layer (M7): the change arrived with new, politically active
+people and pulled the existing crowd along; it was not only an influx.
+
+**Correlates of the change (census + labels, 2026-09-13).**
+- Vote premium: political front-page posts scored the same as others in
+  2010–15 (median 5,095 vs 5,047 in 2015) and ~3× in 2025–26 (29,951 vs
+  10,431; 16,598 vs 6,112). They hold the day's #1 slot 50% of days since
+  2024 (6% before 2016), against 36% of slots 4–10.
+- Homogenising audience: upvote ratio on political front-page posts 0.85
+  (2020–21) → 0.94 (2026); other posts flat at 0.92–0.96.
+- Specialist posters: among authors with ≥3 front-page posts, ≥80%-political
+  accounts went 0 (2010–15) → 31 → 154 (2024–26), supplying 22% of the
+  political front page; never-political multi-posters 594 → 135. Political
+  front-page posters now return within 90 days more than others (61% vs
+  53%); in earlier eras equal or less.
+- Structure: submissions ~90k/month (2012) → 10–16k (2024–26); comments per
+  post 9 → 36–46. Monthly front-page share vs log submissions r=−0.49, vs
+  log comments/post r=+0.73 (2016 on).
+- Comment index and front page share: r=0.84 same month, no lead/lag at
+  monthly resolution.
+- Event weeks: 2020-06-03 74% (receded); 2024-07-08 57%, 2024-08-05 56%,
+  2025-02-05 64%, 2026-01-22 67% (troughs since 2024 stay >30%).
+- Co-activity (M7, n=80/bucket): 2026H2 pics 1.2% vs aww 3.8% as the front
+  page eased to 29%; the four prior half-years 7.5–15% vs 0–2.5% at 41–48%.
+- No signal: posting hour (identical UTC profiles) and image host. Mods lock
+  political threads 2–4× more often (5–6% vs 2–3%).
+
+**Subject of the political front page** (`honest_sub/subject.py`,
+`scripts/subject_label.py`; all 9,249 political front-page titles, 2 concurrent
+requests, 0 failed batches). Primary subject as share of political front-page
+posts:
+
+| | Trump admin | immigration/ICE | elections/politicians | protests | abroad | policy/social | history/other |
+|---|---|---|---|---|---|---|---|
+| 2009–15 | 1% | 1% | 14% | 9% | 39% | 15% | 20% |
+| 2016–23 | 9% | 1% | 18% | 15% | 30% | 15% | 13% |
+| 2024 | 24% | 1% | 27% | 9% | 20% | 8% | 11% |
+| 2025 | 27% | 3% | 12% | 21% | 18% | 6% | 14% |
+| 2026 | 17% | 8% | 9% | 22% | 30% | 6% | 8% |
+
+As a share of the whole front page every subject grew (abroad 3.8% → 8–12%,
+protests 1.9% → 9%, Trump 1.1% → 7–12%), so it is not a single-issue
+takeover on the surface. But the top-scoring "protests" titles are anti-ICE
+and anti-Trump demonstrations and the top "abroad" titles are the Iran war,
+Israel/Gaza and Greenland, i.e. the administration's foreign policy: read
+by what the photo is against rather than its nominal subject, most of the
+2025–26 political front page concerns one administration. Policy/social
+issues (healthcare, prices, guns) did not grow.
+
+**Control sub (2026-09-14).** Same census + front-page labeling on
+r/mildlyinteresting from 2022-01 (`census.py --since`, 490,745 posts, 16,710
+titles, 0 failed batches; `scripts/control_series.py`):
+
+| | r/pics front page | r/mildlyinteresting front page |
+|---|---|---|
+| 2022–23 | 14.9% | 3.1% |
+| 2024 | 34.2% | 2.5% |
+| 2025 | 44.4% | 2.9% |
+| 2026 (to Aug) | 41.6% | 2.1% |
+
+The control did not move (its sided posts run 31:10 left over the period, at
+a rate of ~0.5 per month). The front-page change is r/pics' own, not a
+Reddit-wide drift in what image subs elevate, matching the comment index
+(control comments flat at 0.4–0.5%).
+
+Deliverable: `scripts/pics_monitor.py` builds the contact-sheet monitor page
+(`data/out/pics_monitor.html`) from `scripts/pics_monitor_data.py`.

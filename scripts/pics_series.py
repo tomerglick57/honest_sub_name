@@ -11,13 +11,7 @@ from collections import defaultdict
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 from honest_sub.harvest import read_posts
-
-POL = re.compile(r"\b(trump|biden|harris|obama|romney|mccain|palin|clinton|hillary|sanders|"
-    r"bush|cheney|pelosi|mcconnell|vance|musk|maga|tea party|occupy|president|congress|senate|"
-    r"election|vote[rd]?s?|voting|ballot|democrat\w*|republican\w*|gop|liberal\w*|conservativ\w*|"
-    r"protest\w*|rally|politic\w*|immigra\w*|deport\w*|\bice\b|border|abortion|obamacare|"
-    r"gaza|israel\w*|palestin\w*|ukrain\w*|putin|zelensk\w*|epstein|luigi|mangione|iraq|afghanistan|"
-    r"fascis\w*|nazi\w*|white house|supreme court|impeach\w*|tariff\w*|executive order|snowden|nsa)\b", re.I)
+from honest_sub.keywords import POL
 
 posts = {}
 for f in ("data/raw_hist/pics.posts.jsonl.zst", "data/raw/pics.posts.jsonl.zst",

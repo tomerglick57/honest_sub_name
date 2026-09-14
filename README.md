@@ -24,6 +24,15 @@ real editorial line than what it keeps, and no other accessible source has it.
 | Throughput | ~150 posts/sec at 0.4 s between requests |
 | Payload | ~4.8 KB/post full, ~1.3 KB slim |
 | `fields=` whitelist | **excludes `removed_by_category`**, `upvote_ratio`, `domain`, `stickied`, `locked`, `permalink` |
+| `limit=auto` | returns 100–1000 per page (measured 167–330 on r/pics) at the same latency: ~2–3× throughput for a census |
+| `/search/aggregate` | only `created_utc`, `author`, `subreddit`; `body=` accepts `OR`. Windows **must start at UTC midnight**: any other `after` returns HTTP 200 with zero-count buckets and no error |
+| `/api/time_series` | `key=r/<sub>/posts/count` or `/comments/count`, monthly: the archive's own totals, used to check census completeness |
+
+**Sampling caveat.** `harvest_subreddit` takes the *first* N posts of each
+window, so each stratum covers only the opening hours of its window (New
+Year's Day, April 1st...). Fine for vocabulary; wrong for anything that ranks
+posts within a period. Time series that need "what was on top" use the
+month-by-month census in `scripts/census.py` instead.
 
 The last row drives a design choice: we fetch **full** posts and project fields
 client-side in `harvest.py`, because the `fields` parameter would strip the

@@ -85,10 +85,15 @@ class LMStudio:
 
     def chat(self, system: str, user: str, temperature: float = 0.2,
              max_tokens: int = 3000, json_schema: dict | None = None,
-             retries: int = 3, want_reasoning: bool = False):
+             retries: int = 3, want_reasoning: bool = False,
+             extra: dict | None = None):
         """Gemma 4 is a reasoning model: it spends part of `max_tokens` on
         `reasoning_content` before emitting any answer.  Budget generously --
-        too small a cap returns an empty string rather than an error."""
+        too small a cap returns an empty string rather than an error.
+
+        `extra` is merged into the payload, e.g. {"reasoning_effort": "none"},
+        which LM Studio honours for Gemma 4 (the chat_template_kwargs and
+        nested `reasoning` forms were measured to be silently ignored)."""
         payload = {
             "model": self.model,
             "messages": [{"role": "system", "content": system},
@@ -97,6 +102,7 @@ class LMStudio:
             "max_tokens": max_tokens,
             "stream": False,
         }
+        payload.update(extra or {})
         if json_schema is not None:
             payload["response_format"] = {
                 "type": "json_schema",
