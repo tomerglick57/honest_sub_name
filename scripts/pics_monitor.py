@@ -117,6 +117,10 @@ def main():
         r["partial"] = r["month"] >= d["generated"][:7]
     ctl = pathlib.Path("data/out/control_frontpage.json")
     d["control"] = json.loads(ctl.read_text()) if ctl.exists() else None
+    cs = pathlib.Path("data/out/crowd_series.json")
+    d["crowd_series"] = json.loads(cs.read_text()) if cs.exists() else None
+    va = pathlib.Path("data/out/vote_asym/pics.result.json")
+    d["vote"] = json.loads(va.read_text()) if va.exists() else None
     d["kpi"] = kpis(d)
     blob = json.dumps(d, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     OUT.write_text(PAGE.replace("__DATA__", blob))
@@ -278,6 +282,11 @@ th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--pag
       <div class="scroll"><svg aria-hidden="true"></svg></div>
       <div class="legend"><span class="key"><span class="ln" style="background:var(--ink)"></span>newcomers: in their first year of posting in r/pics</span><span class="key"><span class="ln" style="background:var(--comp)"></span>regulars: posting in r/pics for a year or more</span></div>
     </figure>
+    <figure class="panel" id="p-coact" hidden>
+      <figcaption class="cap"><h2 id="h-coact"></h2><p id="c-coact"></p></figcaption>
+      <div class="scroll"><svg aria-hidden="true"></svg></div>
+      <div class="legend"><span class="key"><span class="sw" style="background:var(--ink)"></span>r/pics posters more politically active than the r/aww baseline</span><span class="key"><span class="sw" style="background:var(--comp)"></span>less</span><span class="key"><span class="ln" style="background:var(--ink-2);width:2px;height:12px"></span>95% interval of the difference</span></div>
+    </figure>
     <figure class="panel" id="p-ctl" hidden>
       <figcaption class="cap"><h2 id="h-ctl"></h2><p id="c-ctl"></p></figcaption>
       <div class="scroll"><svg aria-hidden="true"></svg></div>
@@ -292,6 +301,11 @@ th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--pag
       <figcaption class="cap"><h2 id="h-side"></h2><p id="c-side"></p></figcaption>
       <div class="scroll"><svg aria-hidden="true"></svg></div>
       <div class="legend"><span class="key"><span class="sw" style="background:var(--left)"></span>takes a US left-leaning side (up)</span><span class="key"><span class="sw" style="background:var(--right)"></span>takes a US right-leaning side (down)</span></div>
+    </figure>
+    <figure class="panel" id="p-vote" hidden>
+      <figcaption class="cap"><h2 id="h-vote"></h2><p id="c-vote"></p></figcaption>
+      <div class="scroll"><svg aria-hidden="true"></svg></div>
+      <div class="legend"><span class="key"><span class="sw" style="background:var(--left)"></span>left-leaning advocacy</span><span class="key"><span class="sw" style="background:var(--right)"></span>right-leaning advocacy</span><span class="key"><span class="sw" style="background:var(--comp)"></span>not political</span><span class="key"><span class="ln" style="background:var(--ink-2)"></span>10% = no preference</span></div>
     </figure>
     <figure class="panel" id="p-comments">
       <figcaption class="cap"><h2 id="h-comments"></h2><p id="c-comments"></p></figcaption>
@@ -553,6 +567,42 @@ function endLabel(svg, vals, Y, s, cls) { const i = lastIdx(vals); if (i < 0) re
   }
 }
 
+/* the political crowd: excess co-activity of r/pics posters over the r/aww baseline, per half-year */
+if (D.crowd_series && D.crowd_series.pics && D.crowd_series.aww) {
+  // 2008-09 omitted: a few thousand posters on all of Reddit, everyone posting everywhere, ±30 pt bars at n=80
+  const cs = D.crowd_series, ks = Object.keys(cs.pics).filter(k => cs.aww[k] && k >= '2010').sort();
+  const fig = document.getElementById('p-coact'); fig.hidden = false;
+  const svg = fig.querySelector('svg'), h = 240;
+  const rows = ks.map(k => { const p = cs.pics[k], a = cs.aww[k];
+    const se = Math.sqrt(p.share * (1 - p.share) / p.n + a.share * (1 - a.share) / a.n);
+    return {k, p, a, ex: p.share - a.share, lo: p.share - a.share - 1.96 * se, hi: p.share - a.share + 1.96 * se}; });
+  const lo = Math.min(-0.05, ...rows.map(r => r.lo)) - 0.01, hi = Math.max(0.1, ...rows.map(r => r.hi)) + 0.01;
+  svg.setAttribute('viewBox', `0 0 ${PW} ${h}`);
+  const Y = v => PT + (hi - v) / (hi - lo) * (h - PT - PB);
+  const XB = i => PL + (i + 0.5) * (PW - PL - PR) / rows.length;
+  txt(svg, PW - PR + 10, Y(0) + 4, '= same as baseline', 't-end2');
+  for (let v = Math.ceil(lo * 20) / 20; v <= hi + 1e-9; v += 0.05) { el('line', {x1: PL, x2: PW - PR, y1: Y(v), y2: Y(v), class: Math.abs(v) < 1e-9 ? 'g-axis' : 'g-grid'}, svg); txt(svg, PL - 8, Y(v) + 4, (v > 0 ? '+' : '') + Math.round(v * 100) + ' pt', 't-tick', 'end'); }
+  rows.forEach((r, i) => { if (r.k.endsWith('H1') && +r.k.slice(0, 4) % 2 === 0) txt(svg, XB(i), h - 6, r.k.slice(0, 4), 't-tick', 'middle'); });
+  const bw = Math.min(24, Math.max(4, (PW - PL - PR) / rows.length - 3));
+  rows.forEach((r, i) => { const x = XB(i), up = r.ex >= 0;
+    el('path', {d: bar(x - bw / 2, Y(0) + (up ? 0 : 1), bw, Math.abs(Y(r.ex) - Y(0)), up), fill: up ? 'var(--ink)' : 'var(--comp)'}, svg);
+    el('line', {x1: x, x2: x, y1: Y(r.lo), y2: Y(r.hi), stroke: 'var(--ink-2)', 'stroke-width': r.p.n >= 400 ? 2 : 1, 'stroke-opacity': r.p.n >= 400 ? 1 : 0.55}, svg);
+    const hit = el('rect', {x: x - bw / 2 - 2, y: PT, width: bw + 4, height: h - PT - PB, class: 'hit', tabindex: 0}, svg);
+    const show = (cx, cy) => showTip([div('th', r.k.replace('H', ' H') + ` · ${r.p.n} authors each`), div('tv', `${r.ex >= 0 ? '+' : ''}${(r.ex * 100).toFixed(1)} pt`),
+      div('', `r/pics ${pc(r.p.share, 1)} · r/aww ${pc(r.a.share, 1)} · interval ${(r.lo * 100).toFixed(1)} to ${(r.hi * 100).toFixed(1)} pt`),
+      ...(r.p.hits && r.p.hits.length ? [div('', 'via r/' + r.p.hits.join(', r/'))] : [])], cx, cy);
+    hit.addEventListener('pointermove', e => show(e.clientX, e.clientY)); hit.addEventListener('pointerleave', hideTip);
+    hit.addEventListener('focus', () => { const b = hit.getBoundingClientRect(); show(b.right, b.top); }); hit.addEventListener('blur', hideTip); });
+  const i23 = rows.findIndex(r => r.k >= '2023H1');
+  if (i23 > 0) { el('line', {x1: XB(i23) - bw / 2 - 2, x2: XB(i23) - bw / 2 - 2, y1: PT, y2: h - PB, class: 'g-axis'}, svg);
+    txt(svg, XB(i23) - bw / 2 - 8, PT + 10, '80 authors per bucket', 't-ann', 'end'); txt(svg, XB(i23) - bw / 2 + 4, PT + 10, '400 authors per bucket →', 't-ann'); }
+  const big = rows.filter(r => r.p.n >= 400);
+  const sigList = big.filter(r => r.lo > 0).map(r => r.k.replace('H', ' H')), nsList = big.filter(r => r.lo <= 0).map(r => r.k.replace('H', ' H'));
+  setText('h-coact', big.length ? `A political crowd moved in with the wedge — present in every half-year since 2024` : 'Who the posters are, beyond r/pics');
+  setText('c-coact', `Share of a random sample of each half-year’s r/pics posters who also posted that half-year in a fixed set of political subreddits, minus the same share for r/aww posters — the baseline absorbs Reddit-wide politicization. Titles are never read; 2008–09 are left off (a tiny Reddit where everyone posted everywhere). ` +
+    (big.length ? `From 2023 the sample is 400 authors per sub per bucket. The excess clears zero in ${sigList.join(', ')}${nsList.length ? ` and not in ${nsList.join(', ')}` : ''}; it is largest in 2024 H2–2025 H1, and the posters who trigger it are mostly r/politics, r/politicalhumor, r/democrats and r/conservative. At 80 authors a single bucket can mislead — the 2026 H2 bar read −2.6 pt before the larger sample put it at +1.2.` : ''));
+}
+
 /* control sub: same measure on r/mildlyinteresting, same months */
 if (D.control && D.control.months.some(r => r.fp_share != null)) {
   const fig = document.getElementById('p-ctl'); fig.hidden = false;
@@ -669,6 +719,40 @@ if (D.control && D.control.months.some(r => r.fp_share != null)) {
 function bar(x, y0, w, hgt, up) { const r = Math.min(2, w / 2, hgt); if (hgt <= 0) return '';
   return up ? `M${x},${y0}V${y0 - hgt + r}Q${x},${y0 - hgt} ${x + r},${y0 - hgt}H${x + w - r}Q${x + w},${y0 - hgt} ${x + w},${y0 - hgt + r}V${y0}Z`
             : `M${x},${y0}V${y0 + hgt - r}Q${x},${y0 + hgt} ${x + r},${y0 + hgt}H${x + w - r}Q${x + w},${y0 + hgt} ${x + w},${y0 + hgt - r}V${y0}Z`; }
+
+/* vote asymmetry: where each side's surviving submissions land on the month's score ladder */
+if (D.vote && D.vote.deciles && D.vote.deciles['ADV-R']) {
+  const V = D.vote, fig = document.getElementById('p-vote'); fig.hidden = false;
+  const svg = fig.querySelector('svg'), h = 240;
+  const series = [['ADV-L', 'var(--left)', 'left-leaning advocacy'], ['ADV-R', 'var(--right)', 'right-leaning advocacy'], ['O', 'var(--comp)', 'not political']];
+  const sh = Object.fromEntries(series.map(([k]) => { const c = V.deciles[k], n = c.reduce((a, b) => a + b, 0); return [k, c.map(v => v / n)]; }));
+  const ymax = Math.ceil(Math.max(...series.map(([k]) => Math.max(...sh[k]))) * 10) / 10;
+  svg.setAttribute('viewBox', `0 0 ${PW} ${h}`);
+  const Y = v => PT + (1 - v / ymax) * (h - PT - PB);
+  for (let v = 0; v <= ymax + 1e-9; v += 0.1) { el('line', {x1: PL, x2: PW - PR, y1: Y(v), y2: Y(v), class: v === 0 ? 'g-axis' : 'g-grid'}, svg); txt(svg, PL - 8, Y(v) + 4, pc(v), 't-tick', 'end'); }
+  const slot = (PW - PL - PR) / 10, bw = Math.min(18, (slot - 8) / 3 - 2);
+  const XD = (d, j) => PL + d * slot + slot / 2 + (j - 1) * (bw + 2);
+  for (let d = 0; d < 10; d++) {
+    txt(svg, PL + d * slot + slot / 2, h - 6, d === 9 ? 'top 10%' : d === 0 ? 'bottom 10%' : `${d * 10}–${d * 10 + 10}%`, 't-tick', 'middle');
+    series.forEach(([k, color], j) => { const v = sh[k][d]; if (v <= 0) return;
+      el('path', {d: bar(XD(d, j) - bw / 2, Y(0), bw, Y(0) - Y(v), true), fill: color}, svg); });
+    const hit = el('rect', {x: PL + d * slot, y: PT, width: slot, height: h - PT - PB, class: 'hit', tabindex: 0}, svg);
+    const show = (x, y) => showTip([div('th', d === 9 ? 'top decile of the month’s survivors' : `score percentile ${d * 10}–${d * 10 + 10}`),
+      ...series.map(([k, color, name]) => { const row = div('tr'); const b = document.createElement('b'); b.textContent = pc(sh[k][d], 1);
+        const kk = document.createElement('span'); kk.className = 'ln'; kk.style.background = color; const n = document.createElement('span'); n.textContent = `${name} (${V.deciles[k][d]} of ${V.n[k]})`; row.append(b, kk, n); return row; })], x, y);
+    hit.addEventListener('pointermove', e => show(e.clientX, e.clientY)); hit.addEventListener('pointerleave', hideTip);
+    hit.addEventListener('focus', () => { const b = hit.getBoundingClientRect(); show(b.right, b.top); }); hit.addEventListener('blur', hideTip);
+  }
+  el('line', {x1: PL, x2: PW - PR, y1: Y(0.1), y2: Y(0.1), stroke: 'var(--ink-2)', 'stroke-width': 1.5}, svg);
+  txt(svg, PW - PR + 10, Y(0.1) + 4, 'no preference', 't-end2');
+  const A = V['ADVOCACY only: left vs right'], Pn = V['political vs not'];
+  const [m0, m1] = V.months.map(m => `${MON[+m.slice(5) - 1]} ${m.slice(0, 4)}`);
+  setText('h-vote', `Voters lift both sides above the photos — and the left further than the right`);
+  setText('c-vote', `Where surviving submissions of ${m0}–${m1} landed on their month’s score ladder, by the share of each group in each decile (${V.n['ADV-L']} left-leaning and ${V.n['ADV-R']} right-leaning advocacy posts among ${(V.n.O + V.n.P + V.n.L + V.n.R).toLocaleString()} random survivors; quotation posts excluded). ` +
+    `A non-political photo’s median rank is the ${Math.round(Pn.median_pct[1] * 100)}th percentile; a right-leaning post’s the ${Math.round(A.median_pct[1] * 100)}th; a left-leaning post’s the ${Math.round(A.median_pct[0] * 100)}th. ` +
+    `${pc(A.top_decile[0] / A.n[0])} of left advocacy reaches the top decile against ${pc(A.top_decile[1] / A.n[1])} of right (rank-biserial ${A.rank_biserial > 0 ? '+' : ''}${A.rank_biserial.toFixed(2)}, p = ${A.p.toExponential(0)}, permutation p = ${A.perm_p.toExponential(0)}; ${Math.round(A['power_rb0.2'] * 100)}% power for a 0.2 effect). ` +
+    `The right’s ladder is two-ended: ${pc(sh['ADV-R'][0])} of its posts die in the bottom decile against ${pc(sh['ADV-L'][0])} of the left’s. Upvote ratios are equal (${Number(A.upvote_ratio_med[0]).toFixed(2)} vs ${Number(A.upvote_ratio_med[1]).toFixed(2)}): the right is not downvoted, it is upvoted less. Submissions run ${(V.n.L / V.n.R).toFixed(1)}:1 left; the vote premium takes the front page to about 8:1.`);
+}
 
 /* comments */
 {

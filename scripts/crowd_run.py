@@ -10,7 +10,7 @@ Title-independent by construction: it detects a political crowd moving in even
 when every caption stays neutral -- the failure mode of text metrics on image
 subs. Resumable per (sub, bucket, author).
 """
-import datetime as dt, json, pathlib, random, sys, time
+import argparse, datetime as dt, json, pathlib, random, sys, time
 from collections import defaultdict
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
@@ -49,6 +49,12 @@ def buckets(sub):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--per-bucket", type=int, default=PER_BUCKET,
+                    help="authors per half-year; the shuffle is seeded, so a larger "
+                         "run extends the earlier sample rather than redrawing it")
+    ap.add_argument("--since", default="2008H1", help="first bucket, e.g. 2023H1")
+    args = ap.parse_args()
     api = ArcticShift(min_interval=0.42)
     done = set()
     if OUT.exists():
@@ -61,10 +67,12 @@ def main():
             by = buckets(sub)
             todo_total = 0
             for (y, h) in sorted(by):
+                if f"{y}H{h}" < args.since:
+                    continue
                 authors = sorted(by[(y, h)])
                 rng = random.Random(f"{sub}-{y}-{h}")
                 rng.shuffle(authors)
-                sample = authors[:PER_BUCKET]
+                sample = authors[:args.per_bucket]
                 start = int(dt.datetime(y, 1 if h == 1 else 7, 1,
                                         tzinfo=dt.timezone.utc).timestamp())
                 end = int(dt.datetime(y + (h == 2), 7 if h == 1 else 1, 1,
@@ -81,6 +89,7 @@ def main():
                     subs_hit = {(x.get("subreddit") or "").lower() for x in (ps or [])}
                     fh.write(json.dumps({"sub": sub, "bucket": f"{y}H{h}", "author": a,
                                          "political": bool(subs_hit & POLITICAL),
+                                         "hit": sorted(subs_hit & POLITICAL),
                                          "n_posts": len(ps or [])}) + "\n")
                 fh.flush()
                 print(f"r/{sub} {y}H{h}: bucket done", flush=True)

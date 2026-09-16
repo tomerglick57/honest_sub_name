@@ -585,8 +585,9 @@ people and pulled the existing crowd along; it was not only an influx.
   monthly resolution.
 - Event weeks: 2020-06-03 74% (receded); 2024-07-08 57%, 2024-08-05 56%,
   2025-02-05 64%, 2026-01-22 67% (troughs since 2024 stay >30%).
-- Co-activity (M7, n=80/bucket): 2026H2 pics 1.2% vs aww 3.8% as the front
-  page eased to 29%; the four prior half-years 7.5–15% vs 0–2.5% at 41–48%.
+- Co-activity (M7): at n=80 the 2026H2 bucket read 1.2% vs 3.8% and looked
+  like the crowd receding; at n=400 (below) it is 3.2% vs 2.0%. Noise, as
+  the band predicted.
 - No signal: posting hour (identical UTC profiles) and image host. Mods lock
   political threads 2–4× more often (5–6% vs 2–3%).
 
@@ -627,6 +628,51 @@ The control did not move (its sided posts run 31:10 left over the period, at
 a rate of ~0.5 per month). The front-page change is r/pics' own, not a
 Reddit-wide drift in what image subs elevate, matching the comment index
 (control comments flat at 0.4–0.5%).
+
+**M7 at 400 authors per bucket, 2023–26** (`crowd_run.py --per-bucket 400
+--since 2023H1`; the seeded shuffle extends the n=80 sample; triggering subs
+now stored). Share of sampled posters also posting in the political set that
+half-year, r/pics vs r/aww:
+
+| bucket | r/pics | r/aww | excess | Fisher p |
+|---|---|---|---|---|
+| 2023H1 | 7.0% | 3.0% | +4.0 | 0.014 |
+| 2023H2 | 4.8% | 4.8% | 0.0 | 1 |
+| 2024H1 | 6.0% | 2.0% | +4.0 | 0.006 |
+| 2024H2 | 9.0% | 1.5% | +7.5 | 1.6e-06 |
+| 2025H1 | 11.8% | 3.0% | +8.8 | 2.3e-06 |
+| 2025H2 | 5.2% | 1.5% | +3.8 | 0.005 |
+| 2026H1 | 7.2% | 1.5% | +5.8 | 8e-05 |
+| 2026H2 | 3.2% | 2.0% | +1.2 | 0.38 |
+
+Yearly odds ratios: 2023 1.5 (p=0.08), 2024 4.6, 2025 4.0, 2026 3.1 (all
+p<3e-4). The excess is present in every half-year from 2024H1, the same
+half-year the front page broke, and largest in 2024H2–2025H1 when the front
+page was at its peak; across the eight half-years the excess tracks the
+front-page political share at r=+0.74. Triggering subs are r/politics, r/politicalhumor,
+r/democrats and r/conservative in roughly that order; excluding the two
+borderline members (publicfreakout, conspiracy) leaves the pattern intact.
+
+**M1 for r/pics (2026-09-15): vote asymmetry between sides.**
+`scripts/vote_asym_label.py` + `vote_asym_analyze.py`: 2,500 seeded random
+surviving submissions per month, 2025-09..2026-08 (30,000 titles, stance
+O/P/L/R; the quotation pass on the 934 sided titles ran on the fast settings
+after passing the probe set 16/16). Score percentile within month among all
+survivors of that month (census).
+
+| comparison | n | median percentile | rank-biserial | p | perm p | top decile | power (rb 0.2) |
+|---|---|---|---|---|---|---|---|
+| political vs not | 3,288 vs 26,712 | .83 vs .48 | +0.35 | 3.5e-231 | 2e-4 | 37% vs 7% | 100% |
+| advocacy left vs right | 722 vs 147 | .85 vs .65 | **+0.27** | 3.5e-7 | 2e-4 | 41% vs 28% | 97% |
+
+Right advocacy is lifted less than left, not buried: its median sits at the
+65th percentile, above non-political photos (48th). Upvote ratios are equal
+(.93 vs .94, score>=10), so the gap is fewer upvotes rather than more
+downvotes. Composition among surviving submissions is 4.9:1 left (775:159);
+the vote premium takes the front page to ~8:1. Compared with the other
+audited subs (r/politics rb 0.76, r/PublicFreakout 0.63, r/Conservative
+−0.12 against the left), r/pics' audience asymmetry is real but moderate;
+its front-page tilt is mostly composition, amplified by votes.
 
 Deliverable: `scripts/pics_monitor.py` builds the contact-sheet monitor page
 (`data/out/pics_monitor.html`) from `scripts/pics_monitor_data.py`.
