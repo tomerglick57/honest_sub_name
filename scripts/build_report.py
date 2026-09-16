@@ -49,16 +49,57 @@ FUNNELS = {
       ("Voters", "left", "bury surviving right advocacy · median percentile .17 vs .64 · rank-biserial 0.63 · p=1.8e-05"),
       ("Who stays", "left", "kept right regulars return 47% vs 86% (p=0.001); visitor shares equal at 22%, so not a visitor artifact"),
     ]},
-  "pics": {"subtitle": "31M subscribers · 2025–26 era funnel · the audit's first time-resolved entry",
+  "pics": {"subtitle": "31M subscribers · full census, 8.28M posts · every day’s top 10 labeled 2008–2026 · time-resolved",
     "gates": [
-      ("The change", "left", "2025: removal tripled to ~46% and stayed; political share of the top score decile went 3% (2023) → 33% (2026)"),
-      ("Who posts", "even", "explicit advocacy is rare — 1.8% of posts take a side (49 L : 18 R); the submission stream is still photos"),
-      ("Moderators", "even", "heavy removal is direction-neutral · OR 0.78 · p=0.78 — volume control, not stance control"),
-      ("Voters", "left", "politicization lives here: political topics elevated to a third of the front-page tier; the sided minority runs 73% left (49:18, p=2e-4) — differential treatment of the sides unmeasured at n=18 R"),
+      ("The change", "left", "front page 5.5% political (2008–15) → 41% (last 12 months); every week since 15 Jan 2024 above the old range; a control image sub stays at 2–3%"),
+      ("Who posts", "left", "submissions 4.6% → 10% political (2.2×); sided survivors 4.9 : 1 left (775 vs 159); newcomers’ front-page posts 43% political vs regulars’ 35%"),
+      ("Moderators", "even", "direction-neutral: 34% of political vs 35% of other submissions removed 2024–26 · OR 0.94 · p=0.65 — heavy intake filtering, no stance gate"),
+      ("Voters", "left", "lift politics to the 83rd percentile vs 48th for photos (rank-biserial +0.35); left advocacy over right +0.27 · p=4e-7 · the right is lifted less, not buried; front page 8 : 1 left"),
     ]},
+}
+# r/pics: measured text replaces the model's description, which was written
+# from the earlier stratified sample (first hours of each quarter) and no
+# longer holds against the census. Numbers: docs/audience-methodology.md.
+DEEP_OVERRIDE = {
+  "pics": {
+    "honest_name": "Photos Below, Left-Leaning Politics on Top (2024–)",
+    "honest_description": "A photo sub whose front page turned political in January 2024 and has not turned back: "
+      "41% of each day’s ten highest-scoring posts were political over the last twelve months, against 5.5% in "
+      "2008–2015 and 8–19% in the wave years 2017–2023, while a comparable image sub stayed at 2–3%. The "
+      "submission stream moved far less (4.6% → 10%): the change is the audience’s, expressed in votes, and it "
+      "arrived with an influx of politically active posters. Moderators remove 41–47% of everything at intake "
+      "without regard to stance. Where front-page posts take a side it is the left’s, 8 : 1; among all surviving "
+      "submissions the split is 4.9 : 1 and voters lift left advocacy above right (rank-biserial +0.27), though "
+      "right-leaning posts still outrank ordinary photos. The subject is largely one administration: Trump, "
+      "immigration enforcement, the protests against both, and the wars abroad it is party to.",
+  },
 }
 LEAN = {"left": ("◀ pushes left", "lean-l"), "right": ("pushes right ▶", "lean-r"),
         "even": ("· even ·", "lean-e")}
+
+
+def monitor_halves() -> list:
+    """Half-year rows in the shape the pics charts consume, from the census
+    monitor (scripts/pics_monitor_data.py): `top` is the political share of
+    each day's top-10 posts, `raw` the share of random submissions, `removal`
+    the moderator-removed share of all posts."""
+    mon = json.loads(pathlib.Path("data/out/pics_monitor.json").read_text())
+    acc = {}
+    for r in mon["months"]:
+        if not r.get("censused") or r["month"] >= mon["generated"][:7]:
+            continue
+        y, m = int(r["month"][:4]), int(r["month"][5:])
+        a = acc.setdefault(f"{y} H{1 if m <= 6 else 2}", dict(fp_n=0, fp_pol=0, sub_n=0, sub_pol=0, posts=0, rm=0, L=0, R=0))
+        for k in ("fp_n", "fp_pol", "sub_n", "sub_pol", "posts"):
+            a[k] += r.get(k) or 0
+        a["rm"] += r.get("rm_mod") or 0
+        a["L"] += r.get("fp_L") or 0
+        a["R"] += r.get("fp_R") or 0
+    return [dict(label=k, n=a["fp_n"], L=a["L"], R=a["R"],
+                 top=round(a["fp_pol"] / a["fp_n"], 4) if a["fp_n"] else 0,
+                 raw=round(a["sub_pol"] / a["sub_n"], 4) if a["sub_n"] else 0,
+                 removal=round(a["rm"] / a["posts"], 4) if a["posts"] else 0)
+            for k, a in sorted(acc.items()) if a["fp_n"] >= 150]
 
 
 def pics_chart() -> str:
@@ -70,7 +111,7 @@ def pics_chart() -> str:
     normal-vision floor, contrast); the de-emphasis gray is intentional and
     both series carry direct labels, so identity is never color-alone.
     """
-    ts = json.loads(pathlib.Path("data/out/pics_timeseries.json").read_text())
+    ts = monitor_halves()
     W, H, ML, MR, MT, MB = 660, 250, 40, 158, 14, 30
     peak = max(max(r["top"] for r in ts), max(r["raw"] for r in ts))
     ymax = 0.10 * (int(peak * 10) + 1)  # next 10% step above the data
@@ -99,21 +140,22 @@ def pics_chart() -> str:
                   f"<td>{r['top']*100:.1f}%</td><td>{r['removal']*100:.1f}%</td></tr>" for r in ts)
     return f"""
     <figure class="pchart">
-      <figcaption><strong>Eighteen years of photos, then the front page turned political — and the submissions never moved.</strong>
-      Political share of r/pics posts by half-year, 2008–2026 (keyword screen, survivors only). For twelve years
-      the two lines track each other — election-year blips in 2008 and 2016 included — until they split in 2024.
+      <figcaption><strong>The front page turned political in waves from 2016 and broke in 2024 — the submissions moved a fifth as far.</strong>
+      Political share of r/pics by half-year, 2008–2026, from a census of every post: each day’s ten highest-scoring
+      posts (front page) against a random sample of all submissions, titles labeled by the same model. The full
+      time-resolved monitor — weekly contact sheet, control sub, subjects, vote test — is a separate page.
       Removal tracking exists in the archive only from ~2019; earlier moderation is simply unrecorded, not absent.</figcaption>
       <div class="pchart-wrap">
-      <svg viewBox="0 0 {W} {H}" role="img" aria-label="Political share of r/pics: top score decile rises from 0 to 27 percent while submissions stay under 7 percent">
+      <svg viewBox="0 0 {W} {H}" role="img" aria-label="Political share of r/pics: the daily top 10 rises from 5 percent to over 40 percent while submissions stay near 10 percent">
         {grid}
         {xt}
         <polygon points="{wedge}" class="cwedge"/>
         <line x1="{ann_x:.1f}" y1="{MT}" x2="{ann_x:.1f}" y2="{H-MB}" class="cann"/>
-        <text x="{ann_x+5:.1f}" y="{MT+10}" class="ct">mod removal triples (12%→46%)</text>
+        <text x="{ann_x-5:.1f}" y="{MT+10}" class="ct" text-anchor="end">mod removal reaches 41–47%</text>
         <polyline points="{pl(raw)}" class="clr"/>
         <polyline points="{pl(top)}" class="cla"/>
         {dots}
-        <text x="{W-MR+8}" y="{top[-1][1]+4:.1f}" class="cel cela">of top-scoring posts: {ts[-1]['top']*100:.0f}%</text>
+        <text x="{W-MR+8}" y="{top[-1][1]+4:.1f}" class="cel cela">of the daily top 10: {ts[-1]['top']*100:.0f}%</text>
         <text x="{W-MR+8}" y="{raw[-1][1]+4:.1f}" class="cel">of submissions: {ts[-1]['raw']*100:.0f}%</text>
         <text x="{x(len(ts)-4):.1f}" y="{(y(ts[len(ts)-4]['top'])+y(ts[len(ts)-4]['raw']))/2:.1f}" class="ct cwl" text-anchor="end">the audience's editorial hand</text>
       </svg>
@@ -177,10 +219,11 @@ def crowd_chart() -> str:
     <figure class="pchart">
       <figcaption><strong>A political crowd did move in — arriving with the wedge.</strong>
       Excess share of r/pics posters also posting in political subreddits that same half-year, over the
-      r/aww baseline crowd (80 sampled authors per bucket, titles never read). Single bars inside the shaded
-      band are sampling noise — but pooling 2024&#8202;H2–2026&#8202;H1, the pics crowd is politically co-active at
-      10.0% vs the baseline's 1.9% (odds ratio 5.8, p=1.4e-05; excluding borderline subs it sharpens to
-      8.1% vs 1.2%, OR 7.0). The 2023 John Oliver spike, an in-community protest, correctly leaves no trace here.</figcaption>
+      r/aww baseline crowd (titles never read; 80 sampled authors per bucket to 2022, 400 from 2023). The shaded
+      band is the sampling noise of the 80-author buckets. At 400 authors the excess clears zero in every
+      half-year from 2024&#8202;H1: yearly odds ratios 4.6 (2024), 4.0 (2025), 3.1 (2026), all p&lt;3e-4, against
+      1.5 (p=0.08) in 2023. The posters who trigger it are mostly r/politics, r/politicalhumor, r/democrats and
+      r/conservative. The 2023 John Oliver protest, an in-community event, correctly leaves no trace here.</figcaption>
       <svg viewBox="0 0 {W} {H}" role="img" aria-label="Excess political co-activity of r/pics posters over the r/aww baseline, 2008 to 2026">
         <rect x="{ML}" y="{y(band):.1f}" width="{W-ML-MR}" height="{abs(y(band)-y(-band)):.1f}" class="cnoise"/>
         {grid}
@@ -204,31 +247,15 @@ def sided_chart() -> str:
     surviving title 2008-2026; neutral (N) and off-topic (X) posts are
     excluded -- this panel shows only posts that argue a side.
     """
-    lab_p = pathlib.Path("data/out/slant_labels/pics.hist.jsonl")
-    if not lab_p.exists():
-        return ""
-    import datetime as _dt
     from collections import defaultdict as _dd
-    labs = [json.loads(l) for l in lab_p.read_text().splitlines() if l.strip()]
-    if len(labs) < 900:
-        return ""
-    ts = json.loads(pathlib.Path("data/out/pics_timeseries.json").read_text())
-    surv_year = _dd(int)
-    for r in ts:
-        surv_year[int(r["label"][:4])] += r["n"]
-    cnt = _dd(lambda: [0, 0])
-    for r in labs:
-        y = _dt.datetime.fromtimestamp(r["created_utc"], _dt.timezone.utc).year
-        if r["label"] == "A":
-            cnt[y][0] += 1
-        elif r["label"] == "B":
-            cnt[y][1] += 1
-    # iterate the CORPUS years, not the label years: a year with zero sided
-    # posts must keep its place on the axis -- dropping it splices time and
-    # silently hides the quiet years, which are part of the story
-    years = sorted(y for y in surv_year if surv_year[y] >= 500)
-    rows = [(y, 1000 * cnt[y][0] / surv_year[y], 1000 * cnt[y][1] / surv_year[y],
-             cnt[y][0], cnt[y][1]) for y in years]
+    # per year, from the census monitor: sided posts among each day's top 10
+    yr = _dd(lambda: [0, 0, 0])
+    for h in monitor_halves():
+        y = int(h["label"][:4])
+        yr[y][0] += h["n"]; yr[y][1] += h["L"]; yr[y][2] += h["R"]
+    # every year keeps its place on the axis, even with zero sided posts
+    years = sorted(y for y in yr if yr[y][0] >= 500)
+    rows = [(y, 1000 * yr[y][1] / yr[y][0], 1000 * yr[y][2] / yr[y][0], yr[y][1], yr[y][2]) for y in years]
     W, H, ML, MR, MT, MB = 660, 220, 40, 158, 14, 30
     peak = max(max(a for _, a, b, *_ in rows), max(b for _, a, b, *_ in rows)) * 1.15
     y0 = MT + (H - MT - MB) * peak / (2 * peak)
@@ -241,7 +268,7 @@ def sided_chart() -> str:
             bars += f'<rect x="{x(i)-bw/2:.1f}" y="{ya(a):.1f}" width="{bw:.1f}" height="{max(y0-ya(a),0.5):.1f}" rx="1.5" class="csl"/>'
         if b > 0:
             bars += f'<rect x="{x(i)-bw/2:.1f}" y="{y0+1:.1f}" width="{bw:.1f}" height="{max(ya(-b)-y0,0.5):.1f}" rx="1.5" class="csr"/>'
-    gv = [v for v in (10, 20, 30) if v <= peak]
+    gv = [v for v in ((50, 100, 150) if peak > 60 else (10, 20, 30)) if v <= peak]
     grid = "".join(
         f'<line x1="{ML}" y1="{ya(v):.1f}" x2="{W-MR}" y2="{ya(v):.1f}" class="cg"/>' 
         f'<text x="{ML-6}" y="{ya(v)+4:.1f}" class="ct" text-anchor="end">{v}</text>'
@@ -254,11 +281,11 @@ def sided_chart() -> str:
                   for y, a, b, la, lb in rows)
     return f"""
     <figure class="pchart">
-      <figcaption><strong>The one-sided posts themselves: two left-advocacy waves — Obama 2008 and 2024–26 — and right-leaning advocacy never materialises.</strong>
-      Posts arguing a political side, per 1,000 surviving posts and per year (model-labeled at 89% measured
-      stability; neutral political posts excluded). The 2008 wave (20 left vs 3 right) reached nearly the same
-      rate as 2026 (24 vs 2) — what is new since 2024 is that the wave did not recede.</figcaption>
-      <svg viewBox="0 0 {W} {H}" role="img" aria-label="One-sided r/pics posts per 1,000 per year: left-leaning up in blue, right-leaning down in red">
+      <figcaption><strong>The one-sided front-page posts: left-leaning advocacy in every wave, an order of magnitude more since 2024, and the right never above a sliver.</strong>
+      Front-page posts (each day’s top 10) whose title argues a US political side, per 1,000 front-page posts and
+      per year, from the census. Neutral political posts are excluded. 2008’s Obama-year wave was 16 left per 1,000;
+      2020 was 58; 2025 is 142 left against 18 right.</figcaption>
+      <svg viewBox="0 0 {W} {H}" role="img" aria-label="One-sided r/pics front-page posts per 1,000 per year: left-leaning up in blue, right-leaning down in red">
         {grid}
         {xt}
         <line x1="{ML}" y1="{y0:.1f}" x2="{W-MR}" y2="{y0:.1f}" class="czero"/>
@@ -274,7 +301,7 @@ def sided_chart() -> str:
 
 deep_cards = ""
 for sub in ("politics", "conspiracy", "Conservative", "PublicFreakout", "pics"):
-    d, f = deep.get(sub, {}), FUNNELS[sub]
+    d, f = {**deep.get(sub, {}), **DEEP_OVERRIDE.get(sub, {})}, FUNNELS[sub]
     gates = "".join(
         f'<div class="gate"><div class="gate-head"><span class="gate-name">{esc(g)}</span>'
         f'<span class="lean {LEAN[lean][1]}">{LEAN[lean][0]}</span></div>'

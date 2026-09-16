@@ -115,7 +115,7 @@ def main():
     # the contact sheet (weekly) but out of every monthly figure
     for r in d["months"]:
         r["partial"] = r["month"] >= d["generated"][:7]
-    ctl = pathlib.Path("data/out/control_frontpage.json")
+    ctl = pathlib.Path("data/out/screen/mildlyinteresting.json")
     d["control"] = json.loads(ctl.read_text()) if ctl.exists() else None
     cs = pathlib.Path("data/out/crowd_series.json")
     d["crowd_series"] = json.loads(cs.read_text()) if cs.exists() else None

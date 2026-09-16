@@ -1,8 +1,9 @@
-"""Monthly front-page political share for a control sub, same method as r/pics.
+"""Monthly front-page political share for any sub, same method as r/pics.
 
-Reads the control's census and labels (scripts/census.py --since, then
-frontpage_label.py) and writes data/out/control_frontpage.json for the
-monitor page. A month counts once >=80% of its front-page posts are labeled.
+Reads the sub's census and labels (scripts/census.py --since, then
+frontpage_label.py) and writes data/out/screen/<sub>.json. Used for the
+control sub and for screening other subs. A month counts once >=80% of its
+front-page posts are labeled.
 """
 import datetime as dt, json, pathlib, sys
 
@@ -13,7 +14,8 @@ from honest_sub.harvest import read_posts
 SUB = sys.argv[1] if len(sys.argv) > 1 else "mildlyinteresting"
 CDIR = pathlib.Path("data/census") / SUB
 LABELS = pathlib.Path("data/out/frontpage") / f"{SUB}.labels.jsonl"
-OUT = pathlib.Path("data/out/control_frontpage.json")
+OUT = pathlib.Path("data/out/screen") / f"{SUB}.json"
+OUT.parent.mkdir(parents=True, exist_ok=True)
 MATURE = 3 * 86400
 UTC = dt.timezone.utc
 
