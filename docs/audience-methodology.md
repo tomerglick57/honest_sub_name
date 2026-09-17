@@ -719,6 +719,63 @@ sub screening (r/MadeMeSmile from its 6,900th label, r/OldSchoolCool,
 r/aww); r/pics production labels stay all-gemma. On a non-political sub
 Jev decides ~95% of titles, so the LAN host sees a twentieth of the load.
 
+#### How the trial was built and read
+
+**No ground truth.** Nobody hand-labeled these titles, so the trial
+measures agreement between labelers, not correctness. The reference is
+gemma-4-31b with reasoning on, because that configuration passed the
+project's original gates (§10, 2026-09-09). Where Jev disagrees with both
+gemma passes, the titles are printed for a human to judge rather than
+scored either way; several of them read as gemma over-reaching.
+
+**Two samples, two jobs.**
+
+* *Stratified validation set, 261 titles.* Stratified sampling splits the
+  population into groups first and draws a fixed number from each, instead
+  of drawing at random from the whole. The groups are era (2008–15,
+  2016–23, 2024–26) crossed with production label (O, P, L, R), twelve
+  cells, up to 25 titles each (`scripts/frontpage_validate.py`, seed
+  `validate-v1`). A plain random 261 would be ~80% "not political" and hold
+  perhaps ten right-leaning titles, too few to test that class. The cost of
+  stratifying is that the set no longer reflects the real label mix, so it
+  is right for per-class agreement and wrong for estimating shares.
+* *Random set, 750 titles.* A seeded random draw of front-page titles with
+  production labels only (seed `typesafe-trial-v1`). Its mix is true to the
+  front page, so it carries the era-by-era political share, flair recall,
+  the label-mix comparison, and the cost and latency figures.
+
+**Two views of the label.** The *4-way* label is the full O/P/L/R: not
+political, political with no US partisan side, left-leaning, right-leaning.
+*Political vs not* collapses P, L and R into one class. The binary drives
+the load-bearing indicator (front-page political share); the 4-way drives
+the secondary panels (left–right split, vote asymmetry, subjects). A
+labeler can be good at one and weak at the other, and Jev is exactly that.
+
+**Kappa.** Cohen's kappa is agreement corrected for chance: two labelers
+that both say O 80% of the time agree often by luck, so kappa subtracts the
+agreement their label mixes would produce on their own and rescales, 1.0 =
+perfect, 0 = chance. Rough reading: > 0.8 near-identical, 0.6–0.8
+substantial, 0.4–0.6 moderate. Gemma fast vs gemma reasoning: 0.91 binary,
+0.81 4-way. Jev vs the reference: 0.76 binary, 0.56 4-way.
+
+**Prompt and model variants tried.** *noul+side* follows TypeSafe's advice
+to split a question into atomic parts: a "noul" (their yes/no primitive,
+returning a probability the statement is true) asked "is this political?",
+a separate Choice asked "which side, if any", and the two were combined
+into O/P/L/R with the noul thresholded at 0.5. It scored below the single
+Choice question (83.9% vs 88.9% binary) because the noul called more titles
+political than gemma does. *jev-preview* is TypeSafe's newest-build alias
+next to the stable *jev-latest*; both resolved to 1.13.0 and it scored the
+same within noise. Each variant cost about a cent, so ruling them out was
+cheap.
+
+**Confidence gating.** Jev's confidence (how peaked its probability
+distribution is) was binned against agreement with production on all
+1,011 rows: ≥ 0.8 (78% of titles) agreed 96%; every bin below agreed
+~45–60%. That step function is what makes the hybrid work: keep Jev's
+answer when confident, send the rest to gemma. Re-scored on the 261
+validation rows the rule gives 97.7% / 87.0%, above gemma-fast alone.
+
 ### Sub screening (2026-09-17): seven big general-audience subs, 2023 on
 
 Same measure as the r/pics monitor (political share of each UTC day's top
