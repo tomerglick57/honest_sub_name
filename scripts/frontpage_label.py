@@ -2,10 +2,15 @@
 
 Reads completed census months (data/census/<sub>/*.jsonl.zst) and selects,
 via honest_sub.frontpage, each UTC day's top N posts by final score plus a
-seeded random K of the month's posts, then labels the titles on the LAN model
-(honest_sub.topic). Front-page items always go first: the queue is rebuilt
-every slice, so a newly finished census month jumps ahead of pending sample
-items. With --follow it keeps polling while the census runs. Resumable by id.
+seeded random K of the month's posts, then labels the titles. Front-page
+items always go first: the queue is rebuilt every slice, so a newly finished
+census month jumps ahead of pending sample items. With --follow it keeps
+polling while the census runs. Resumable by id.
+
+--labeler gemma  : the LAN model (honest_sub.topic), batches of 40.
+--labeler hybrid : TypeSafe Jev first, one title per call (honest_sub.topic_jev);
+                   titles under its confidence threshold go to gemma. Rows
+                   record which model decided ("m") and Jev's confidence.
 """
 import argparse, concurrent.futures as cf, datetime as dt, json, pathlib, sys, threading, time
 from collections import defaultdict
@@ -50,7 +55,9 @@ def main():
     ap.add_argument("sub", nargs="?", default="pics")
     ap.add_argument("--n", type=int, default=10, help="front-page posts per day")
     ap.add_argument("--sample", type=int, default=0, help="random submissions per month")
-    ap.add_argument("--concurrency", type=int, default=4)
+    ap.add_argument("--concurrency", type=int, default=4, help="gemma requests in flight")
+    ap.add_argument("--labeler", choices=("gemma", "hybrid"), default="gemma")
+    ap.add_argument("--jev-concurrency", type=int, default=8)
     ap.add_argument("--follow", action="store_true")
     args = ap.parse_args()
 
@@ -61,6 +68,11 @@ def main():
     lock, tls = threading.Lock(), threading.local()
     fails = defaultdict(int)
     cache = {}
+    jev_conf = {}  # id -> (label, conf) for titles Jev saw but did not decide
+    if args.labeler == "hybrid":
+        from honest_sub.topic_jev import THRESH, label_one
+        from honest_sub.typesafe import TypeSafe
+        ts = TypeSafe()
 
     def work(chunk):
         if not hasattr(tls, "lm"):
@@ -74,9 +86,33 @@ def main():
             return 0
         with lock, open(out, "a") as fh:
             for c, l in zip(chunk, labs):
-                fh.write(json.dumps({"id": c["id"], "label": l, "m": MODEL_TAG}) + "\n")
+                row = {"id": c["id"], "label": l, "m": MODEL_TAG}
+                if c["id"] in jev_conf:
+                    row["jev"], row["conf"] = jev_conf.pop(c["id"])
+                fh.write(json.dumps(row) + "\n")
                 done.add(c["id"])
         return len(chunk)
+
+    def jev_pass(items):
+        """Label with Jev; write the confident ones, return the rest for gemma."""
+        def one(c):
+            try:
+                return c, label_one(ts, c["title"])
+            except Exception as e:
+                print(f"  !! jev {c['id']}: {type(e).__name__}: {str(e)[:100]}", flush=True)
+                return c, None
+        low, n = [], 0
+        with cf.ThreadPoolExecutor(args.jev_concurrency) as ex, open(out, "a") as fh:
+            for c, res in ex.map(one, items):
+                if res is None:
+                    low.append(c); continue
+                l, conf, tag = res
+                if conf >= THRESH:
+                    fh.write(json.dumps({"id": c["id"], "label": l, "m": tag, "conf": round(conf, 3)}) + "\n")
+                    done.add(c["id"]); n += 1
+                else:
+                    jev_conf[c["id"]] = (l, round(conf, 3)); low.append(c)
+        return n, low
 
     t0, total = time.time(), 0
     print(f"{len(done)} already labeled", flush=True)
@@ -94,11 +130,16 @@ def main():
                 seen.add(x["id"]); pending.append(x)
         if pending:
             head = pending[:BATCH * SLICE]
+            note = ""
+            if args.labeler == "hybrid":
+                n_jev, head = jev_pass(head)
+                total += n_jev
+                note = f", jev decided {n_jev:,} and passed {len(head):,} to gemma"
             chunks = [head[i:i + BATCH] for i in range(0, len(head), BATCH)]
             with cf.ThreadPoolExecutor(args.concurrency) as ex:
                 total += sum(ex.map(work, chunks))
             el = time.time() - t0
-            print(f"  +{total:,} labeled ({len(done):,} total) {total / el * 3600:,.0f}/hr, "
+            print(f"  +{total:,} labeled ({len(done):,} total) {total / el * 3600:,.0f}/hr{note}, "
                   f"{len(pending) - len(head):,} queued, {len(order)} months in census", flush=True)
             continue
         if not args.follow or census_complete(cdir):

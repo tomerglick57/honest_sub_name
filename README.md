@@ -83,6 +83,16 @@ and caches whichever one answers rather than hard-coding it.
 empty `content` string with `finish_reason: "length"` and no error — so the
 client treats that case as a failure rather than passing empty output downstream.
 
+**TypeSafe Jev as a first pass (2026-09-17).** `honest_sub/typesafe.py` calls
+TypeSafe's System One API (key in `.env` as `TYPESAFE_API_KEY`), which returns
+a label plus a probability per option instead of text, at ~25 titles/s for
+about $0.02 per thousand. Measured against gemma-with-reasoning it matches on
+political-vs-not but calls most sided titles "P", so it is not used alone for
+stance. Its confidence is well calibrated, so `scripts/frontpage_label.py
+--labeler hybrid` lets Jev decide titles at confidence ≥ 0.8 and sends the
+rest to gemma; that hybrid scored above gemma-fast on both metrics with a
+fifth of the LAN calls (docs/audience-methodology.md, 2026-09-17 entry).
+
 ## Severity is measured, not asked
 
 Asking the model to rate `gap_severity` did not survive contact with the data.

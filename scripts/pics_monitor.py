@@ -109,6 +109,31 @@ def kpis(d):
     }
 
 
+def screen_rows(d):
+    """One row per screened sub (data/out/screen/*.json) plus r/pics itself:
+    pooled front-page political share for 2023 and for 2024 to the last
+    complete month, the peak month, and the left/right split since 2024."""
+    gen = d["generated"][:7]
+    series = {"pics": [r for r in d["months"] if r.get("censused") and r["month"] >= "2023-01"]}
+    for f in sorted(pathlib.Path("data/out/screen").glob("*.json")):
+        series[f.stem] = json.loads(f.read_text())["months"]
+    rows = []
+    for sub, ms in series.items():
+        ms = [r for r in ms if r.get("fp_share") is not None and r["month"] < gen]
+        pool = lambda lo, hi: (lambda s: (sum(r["fp_pol"] for r in s) / sum(r["fp_n"] for r in s)) if s else None)(
+            [r for r in ms if lo <= r["month"] <= hi])
+        post = [r for r in ms if r["month"] >= "2024-01"]
+        big = [r for r in ms if r["fp_n"] >= 200]
+        pk = max(big, key=lambda r: r["fp_share"]) if big else None
+        if not post or pool("2023-01", "2023-12") is None:
+            continue
+        rows.append({"sub": sub, "pre": round(pool("2023-01", "2023-12"), 4), "post": round(pool("2024-01", "2100"), 4),
+                     "peak": pk["fp_share"] if pk else None, "peak_month": pk["month"] if pk else None,
+                     "L": sum(r["fp_L"] for r in post), "R": sum(r["fp_R"] for r in post),
+                     "n_post": sum(r["fp_n"] for r in post), "last": ms[-1]["month"]})
+    return sorted(rows, key=lambda r: -r["post"])
+
+
 def main():
     d = json.loads(SRC.read_text())
     # the month the data was built in has only a few settled days: keep it on
@@ -121,6 +146,7 @@ def main():
     d["crowd_series"] = json.loads(cs.read_text()) if cs.exists() else None
     va = pathlib.Path("data/out/vote_asym/pics.result.json")
     d["vote"] = json.loads(va.read_text()) if va.exists() else None
+    d["screen"] = screen_rows(d)
     d["kpi"] = kpis(d)
     blob = json.dumps(d, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     OUT.write_text(PAGE.replace("__DATA__", blob))
@@ -291,6 +317,11 @@ th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--pag
       <figcaption class="cap"><h2 id="h-ctl"></h2><p id="c-ctl"></p></figcaption>
       <div class="scroll"><svg aria-hidden="true"></svg></div>
       <div class="legend"><span class="key"><span class="ln" style="background:var(--ink)"></span>r/pics front page</span><span class="key"><span class="ln" style="background:var(--comp)"></span>r/mildlyinteresting front page (control)</span></div>
+    </figure>
+    <figure class="panel" id="p-screen" hidden>
+      <figcaption class="cap"><h2 id="h-screen"></h2><p id="c-screen"></p></figcaption>
+      <div class="scroll"><svg aria-hidden="true"></svg></div>
+      <div class="legend"><span class="key"><span class="sw" style="background:var(--comp);border-radius:50%"></span>2023 average</span><span class="key"><span class="sw" style="background:var(--ink);border-radius:50%"></span>2024 to now</span><span class="key"><span class="sw" style="box-shadow:inset 0 0 0 2px var(--ink);border-radius:50%"></span>peak month</span></div>
     </figure>
     <figure class="panel" id="p-subj" hidden>
       <figcaption class="cap"><h2 id="h-subj"></h2><p id="c-subj"></p></figcaption>
@@ -644,6 +675,42 @@ if (D.control && D.control.months.some(r => r.fp_share != null)) {
       (ctlUp != null ? `The control rose ${ctlUp.toFixed(1)}× against r/pics’ ${(a1 / a0).toFixed(1)}×. ` : '') +
       (ctlUp != null && ctlUp < 1.2 ? `Whatever Reddit as a whole did, what a comparable image sub’s voters put on top did not change; the r/pics turn is not a site-wide drift.` : `Part of the r/pics change is shared with the control and is site-wide.`));
   }
+}
+
+/* screening: the same measure on other big general-audience subs, 2023 vs 2024– */
+if (D.screen && D.screen.length > 2) {
+  const fig = document.getElementById('p-screen'); fig.hidden = false;
+  const svg = fig.querySelector('svg'), rows = D.screen, RH = 30, L0 = 200, R0 = 150, T0 = 26;
+  const h = T0 + rows.length * RH + 10;
+  const xmax = Math.ceil(Math.max(0.1, ...rows.map(r => Math.max(r.post, r.pre, r.peak || 0))) * 10) / 10;
+  const X = v => L0 + v / xmax * (PW - L0 - R0);
+  svg.setAttribute('viewBox', `0 0 ${PW} ${h}`);
+  for (let v = 0; v <= xmax + 1e-9; v += 0.1) { el('line', {x1: X(v), x2: X(v), y1: T0 - 8, y2: h - 10, class: v === 0 ? 'g-axis' : 'g-grid'}, svg); txt(svg, X(v), T0 - 14, pc(v), 't-tick', 'middle'); }
+  rows.forEach((r, k) => {
+    const y = T0 + k * RH + RH / 2, me = r.sub === 'pics';
+    txt(svg, L0 - 12, y + 4, 'r/' + r.sub, me ? 't-end' : 't-end2', 'end');
+    el('line', {x1: X(r.pre), x2: X(r.post), y1: y, y2: y, stroke: me ? 'var(--ink)' : 'var(--axis)', 'stroke-width': me ? 3 : 2}, svg);
+    if (r.peak != null) el('circle', {cx: X(r.peak), cy: y, r: 5, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.5, opacity: me ? 1 : .5}, svg);
+    el('circle', {cx: X(r.pre), cy: y, r: 5, class: 'dot-comp'}, svg);
+    el('circle', {cx: X(r.post), cy: y, r: 5.5, class: 'dot-main'}, svg);
+    txt(svg, X(Math.max(r.post, r.peak || 0)) + 12, y + 4, `${pc(r.pre)} → ${pc(r.post)}`, me ? 't-end' : 't-end2');
+    const hit = el('rect', {x: 0, y: y - RH / 2, width: PW, height: RH, class: 'hit'}, svg);
+    const show = (x, yy) => showTip([div('th', `r/${r.sub} front page, political share`),
+      ...[['2023', pc(r.pre, 1), 'var(--comp)'], [`2024–${r.last.slice(0, 4)} (${r.n_post.toLocaleString()} posts)`, pc(r.post, 1), 'var(--ink)'],
+          [`peak month ${r.peak_month}`, pc(r.peak, 1), 'none'], [`left : right since 2024`, `${r.L} : ${r.R}`, 'none']].map(([n, v, c]) => {
+        const row = div('tr'); const b = document.createElement('b'); b.textContent = v; const kk = document.createElement('span'); kk.className = 'ln'; kk.style.background = c; kk.style.visibility = c === 'none' ? 'hidden' : ''; const nn = document.createElement('span'); nn.textContent = n; row.append(b, kk, nn); return row; })], x, yy);
+    hit.addEventListener('pointermove', e => show(e.clientX, e.clientY)); hit.addEventListener('pointerleave', hideTip);
+  });
+  const others = rows.filter(r => r.sub !== 'pics'), pics = rows.find(r => r.sub === 'pics');
+  const moved = others.filter(r => r.post >= 0.1 && r.post >= 2 * r.pre);
+  const named = moved.map(r => `r/${r.sub} (${pc(r.pre)} → ${pc(r.post)})`);
+  setText('h-screen', pics && moved.length === 0 ? `Screened against ${others.length} big general-audience subs: r/pics stands alone`
+                  : moved.length === 1 ? `One other big sub moved the same way: ${named[0].split(' (')[0]}` : `${moved.length} of ${others.length} screened subs moved too`);
+  setText('c-screen', `The same measure — political share of each day’s top-10 posts, same rubric — on ${others.length} of Reddit’s largest general-audience subs, censused from 2023. ` +
+    (pics ? `r/pics went from ${pc(pics.pre)} in 2023 to ${pc(pics.post)} since 2024, ${pics.L}:${pics.R} left to right. ` : '') +
+    (moved.length ? `${named.join(', ')} also at least doubled to 10% or more. ` : `No other sub both doubled and reached 10%. `) +
+    `The next-highest is r/${others[0].sub} at ${pc(others[0].post)}; the median screened sub sits at ${pc(others[Math.floor(others.length / 2)].post)}. ` +
+    `Labels: gemma-4-31b for r/pics, r/mildlyinteresting, r/funny, r/interestingasfuck, r/Damnthatsinteresting and r/facepalm; the rest by TypeSafe Jev with the low-confidence fifth of titles routed to gemma, a hybrid that agrees with gemma-with-reasoning on political-vs-not 97.7% of the time (gemma-fast alone: 96.2%).`);
 }
 
 /* what the politics was about: stacked columns per quarter, total height = political share */

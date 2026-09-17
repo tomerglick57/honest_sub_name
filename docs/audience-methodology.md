@@ -676,3 +676,68 @@ its front-page tilt is mostly composition, amplified by votes.
 
 Deliverable: `scripts/pics_monitor.py` builds the contact-sheet monitor page
 (`data/out/pics_monitor.html`) from `scripts/pics_monitor_data.py`.
+
+### TypeSafe Jev trial and the hybrid labeler (2026-09-17)
+
+TypeSafe's Jev (`jev-1.13.0`, https://docs.typesafe.ai) answers typed
+questions with a probability distribution instead of text. The front-page
+rubric was posed as one Choice question per title (`honest_sub/topic_jev.py`)
+and run on 1,011 r/pics front-page titles: the 261-title stratified
+validation set, where gemma-4-31b ran both fast (production) and with
+reasoning, plus a seeded random 750 (`scripts/typesafe_trial.py`).
+
+| | Jev | gemma-4-31b on the LAN host |
+|---|---|---|
+| throughput | 25 titles/s at 8 concurrent | ~2/s at 4 concurrent |
+| cost, all 90,148 production labels | $1.92 (508 input tokens/title) | host time, ~13 h |
+
+Agreement on the 261 validation titles; the reference is gemma with
+reasoning, the configuration that passed the project's gates. No human
+truth exists for these rows.
+
+| labeler | political vs not | 4-way O/P/L/R |
+|---|---|---|
+| gemma fast (production) | 96.2% (κ 0.91) | 86.2% (κ 0.81) |
+| Jev, one Choice question | 88.9% (κ 0.76) | 69.3% (κ 0.56) |
+| Jev, noul "political?" + Choice side | 83.9% | 69.0% |
+| jev-preview, one Choice | 88.1% | 67.8% |
+| hybrid: Jev if confidence ≥ 0.8, else gemma fast | 97.7% | 87.0% |
+
+Jev alone under-detects stance: 36 of 261 titles are L for gemma and P for
+Jev, and on the random 750 it found 32 L / 16 R against production's 92 /
+44. The political share by era survives (2008-15 4.3% vs 6.4%, 2016-23
+16.6% vs 16.6%, 2024-26 32.1% vs 27.5%, gemma vs Jev), flair recall is
+89/108 vs 92/108. Its confidence is informative: at ≥ 0.8 (78% of titles)
+Jev agrees with production 96%, below that ~50%. Where Jev disagrees with
+both gemma passes, several look like gemma over-reaching ("Save the
+Planet", "Pollution in China is out of control" labeled political).
+
+Decision: `scripts/frontpage_label.py --labeler hybrid` sends every title
+to Jev first and only the sub-threshold rows to gemma; each row records
+which model decided (`m`) and Jev's confidence. Used from this date for the
+sub screening (r/MadeMeSmile from its 6,900th label, r/OldSchoolCool,
+r/aww); r/pics production labels stay all-gemma. On a non-political sub
+Jev decides ~95% of titles, so the LAN host sees a twentieth of the load.
+
+### Sub screening (2026-09-17): seven big general-audience subs, 2023 on
+
+Same measure as the r/pics monitor (political share of each UTC day's top
+10 by final score), censused from 2023-01 with `scripts/screen_subs.sh`,
+`data/out/screen/<sub>.json`. Labels: gemma for the first four and the
+control, the Jev+gemma hybrid for the last three.
+
+| sub | 2023 | 2024–Aug 2026 | peak month | L:R since 2024 |
+|---|---|---|---|---|
+| pics | 14.9% | 39.9% | 64.2% (2025-03) | 1152:139 |
+| facepalm | 15.2% | 35.4% | 57.4% (2025-10) | 1568:274 |
+| interestingasfuck | 8.1% | 9.8% | 23.5% (2024-08) | 145:10 |
+| Damnthatsinteresting | 7.8% | 6.3% | 20.4% (2023-02) | 43:1 |
+| OldSchoolCool | 6.0% | 4.0% | 10.0% (2023-02) | 25:2 |
+| MadeMeSmile | 1.5% | 2.7% | 9.7% (2025-03) | 69:6 |
+| mildlyinteresting (control) | 2.5% | 2.6% | 5.5% (2022-03) | 14:4 |
+| funny | 1.2% | 1.1% | 2.9% (2024-12) | 15:5 |
+| aww | 1.3% | 0.1% | 16.6% (2023-06) | 1:0 |
+
+Only r/facepalm moved with r/pics, and its format invites politics
+(captioned failures). The r/aww 2023-06 spike is the API-protest month.
+Rendered as the "screening" panel of the monitor page.
