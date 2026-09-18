@@ -9,14 +9,18 @@ set -u
 cd "$(dirname "$0")/.."
 SUBS=${SUBS:-"funny interestingasfuck Damnthatsinteresting facepalm MadeMeSmile OldSchoolCool aww"}
 LABELER=${LABELER:-hybrid}
+GEMMA_CONC=${GEMMA_CONC:-2}  # set to 1 when running two lanes side by side
 for sub in $SUBS; do
   echo "== r/$sub $(date +%H:%M) ($LABELER)"
+  rm -f "data/census/$sub/_done.json"
   python3 scripts/census.py "$sub" --since 2023-01 --workers 2 > "logs/census_$sub.log" 2>&1 &
   cpid=$!
-  until [ -f "data/census/$sub/_counts.json" ]; do sleep 5; done
-  python3 scripts/frontpage_label.py "$sub" --n 10 --sample 0 --concurrency 2 --labeler "$LABELER" --follow > "logs/frontpage_label_$sub.log" 2>&1
+  # wait for the counts file; if the census dies first (bad archive reply), skip the sub
+  until [ -f "data/census/$sub/_counts.json" ] || ! kill -0 $cpid 2>/dev/null; do sleep 5; done
+  if [ ! -f "data/census/$sub/_counts.json" ]; then echo "   !! census r/$sub died before writing counts; skipped"; continue; fi
+  python3 scripts/frontpage_label.py "$sub" --n 10 --sample 0 --concurrency "$GEMMA_CONC" --labeler "$LABELER" --follow > "logs/frontpage_label_$sub.log" 2>&1
   wait $cpid
   python3 scripts/control_series.py "$sub" > "logs/screen_$sub.log" 2>&1
-  echo "   $(tail -1 "logs/frontpage_label_$sub.log") | census: $(grep -c CHECK "logs/census_$sub.log") months flagged"
+  echo "   $(tail -1 "logs/frontpage_label_$sub.log") | $(tail -1 "logs/census_$sub.log") | $(grep -c CHECK "logs/census_$sub.log") months flagged"
 done
 echo "screen_subs done $(date +%H:%M)"

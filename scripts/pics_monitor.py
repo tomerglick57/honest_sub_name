@@ -114,6 +114,9 @@ def screen_rows(d):
     pooled front-page political share for 2023 and for 2024 to the last
     complete month, the peak month, and the left/right split since 2024."""
     gen = d["generated"][:7]
+    # subs whose format is commentary on people and events, where politics is expected
+    reaction = {"facepalm", "PublicFreakout", "MurderedByWords", "clevercomebacks", "WhitePeopleTwitter",
+                "therewasanattempt", "TikTokCringe"}
     series = {"pics": [r for r in d["months"] if r.get("censused") and r["month"] >= "2023-01"]}
     for f in sorted(pathlib.Path("data/out/screen").glob("*.json")):
         series[f.stem] = json.loads(f.read_text())["months"]
@@ -127,11 +130,12 @@ def screen_rows(d):
         pk = max(big, key=lambda r: r["fp_share"]) if big else None
         if not post or pool("2023-01", "2023-12") is None:
             continue
-        rows.append({"sub": sub, "pre": round(pool("2023-01", "2023-12"), 4), "post": round(pool("2024-01", "2100"), 4),
+        rows.append({"sub": sub, "kind": "reaction" if sub in reaction else "general",
+                     "pre": round(pool("2023-01", "2023-12"), 4), "post": round(pool("2024-01", "2100"), 4),
                      "peak": pk["fp_share"] if pk else None, "peak_month": pk["month"] if pk else None,
                      "L": sum(r["fp_L"] for r in post), "R": sum(r["fp_R"] for r in post),
                      "n_post": sum(r["fp_n"] for r in post), "last": ms[-1]["month"]})
-    return sorted(rows, key=lambda r: -r["post"])
+    return sorted(rows, key=lambda r: (r["kind"] == "reaction", -r["post"]))
 
 
 def main():
@@ -680,14 +684,16 @@ if (D.control && D.control.months.some(r => r.fp_share != null)) {
 /* screening: the same measure on other big general-audience subs, 2023 vs 2024– */
 if (D.screen && D.screen.length > 2) {
   const fig = document.getElementById('p-screen'); fig.hidden = false;
-  const svg = fig.querySelector('svg'), rows = D.screen, RH = 30, L0 = 200, R0 = 150, T0 = 26;
-  const h = T0 + rows.length * RH + 10;
+  const svg = fig.querySelector('svg'), rows = D.screen, RH = rows.length > 12 ? 24 : 30, L0 = 200, R0 = 150, T0 = 26, SEC = 22;
+  const nGen = rows.filter(r => r.kind !== 'reaction').length, hasSec = nGen < rows.length;
+  const h = T0 + rows.length * RH + (hasSec ? SEC : 0) + 10;
   const xmax = Math.ceil(Math.max(0.1, ...rows.map(r => Math.max(r.post, r.pre, r.peak || 0))) * 10) / 10;
   const X = v => L0 + v / xmax * (PW - L0 - R0);
   svg.setAttribute('viewBox', `0 0 ${PW} ${h}`);
   for (let v = 0; v <= xmax + 1e-9; v += 0.1) { el('line', {x1: X(v), x2: X(v), y1: T0 - 8, y2: h - 10, class: v === 0 ? 'g-axis' : 'g-grid'}, svg); txt(svg, X(v), T0 - 14, pc(v), 't-tick', 'middle'); }
+  if (hasSec) txt(svg, L0 - 12, T0 + nGen * RH + SEC - 8, 'reaction subs: commentary on people and events', 't-ann', 'end');
   rows.forEach((r, k) => {
-    const y = T0 + k * RH + RH / 2, me = r.sub === 'pics';
+    const y = T0 + k * RH + RH / 2 + (k >= nGen ? SEC : 0), me = r.sub === 'pics';
     txt(svg, L0 - 12, y + 4, 'r/' + r.sub, me ? 't-end' : 't-end2', 'end');
     el('line', {x1: X(r.pre), x2: X(r.post), y1: y, y2: y, stroke: me ? 'var(--ink)' : 'var(--axis)', 'stroke-width': me ? 3 : 2}, svg);
     if (r.peak != null) el('circle', {cx: X(r.peak), cy: y, r: 5, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.5, opacity: me ? 1 : .5}, svg);
@@ -701,16 +707,18 @@ if (D.screen && D.screen.length > 2) {
         const row = div('tr'); const b = document.createElement('b'); b.textContent = v; const kk = document.createElement('span'); kk.className = 'ln'; kk.style.background = c; kk.style.visibility = c === 'none' ? 'hidden' : ''; const nn = document.createElement('span'); nn.textContent = n; row.append(b, kk, nn); return row; })], x, yy);
     hit.addEventListener('pointermove', e => show(e.clientX, e.clientY)); hit.addEventListener('pointerleave', hideTip);
   });
-  const others = rows.filter(r => r.sub !== 'pics'), pics = rows.find(r => r.sub === 'pics');
-  const moved = others.filter(r => r.post >= 0.1 && r.post >= 2 * r.pre);
+  const pics = rows.find(r => r.sub === 'pics'), gen = rows.filter(r => r.kind !== 'reaction' && r.sub !== 'pics'), rea = rows.filter(r => r.kind === 'reaction');
+  const moved = gen.filter(r => r.post >= 0.1 && r.post >= 2 * r.pre);
   const named = moved.map(r => `r/${r.sub} (${pc(r.pre)} → ${pc(r.post)})`);
-  setText('h-screen', pics && moved.length === 0 ? `Screened against ${others.length} big general-audience subs: r/pics stands alone`
-                  : moved.length === 1 ? `One other big sub moved the same way: ${named[0].split(' (')[0]}` : `${moved.length} of ${others.length} screened subs moved too`);
-  setText('c-screen', `The same measure — political share of each day’s top-10 posts, same rubric — on ${others.length} of Reddit’s largest general-audience subs, censused from 2023. ` +
+  const reaMoved = rea.filter(r => r.post >= 0.1 && r.post >= 2 * r.pre);
+  setText('h-screen', pics && moved.length === 0 ? `Screened against ${gen.length} big general-audience subs, r/pics stands alone — at the level of the reaction subs`
+                  : moved.length === 1 ? `One other general-audience sub moved the same way: r/${moved[0].sub}` : `${moved.length} of ${gen.length} general-audience subs moved too`);
+  setText('c-screen', `The same measure — political share of each day’s top-10 posts, same rubric — on ${gen.length} of Reddit’s largest general-audience image and video subs and ${rea.length} reaction subs, all censused from 2023. ` +
     (pics ? `r/pics went from ${pc(pics.pre)} in 2023 to ${pc(pics.post)} since 2024, ${pics.L}:${pics.R} left to right. ` : '') +
-    (moved.length ? `${named.join(', ')} also at least doubled to 10% or more. ` : `No other sub both doubled and reached 10%. `) +
-    `The next-highest is r/${others[0].sub} at ${pc(others[0].post)}; the median screened sub sits at ${pc(others[Math.floor(others.length / 2)].post)}. ` +
-    `Labels: gemma-4-31b for r/pics, r/mildlyinteresting, r/funny, r/interestingasfuck, r/Damnthatsinteresting and r/facepalm; the rest by TypeSafe Jev with the low-confidence fifth of titles routed to gemma, a hybrid that agrees with gemma-with-reasoning on political-vs-not 97.7% of the time (gemma-fast alone: 96.2%).`);
+    (moved.length ? `${named.join(', ')} also at least doubled to 10% or more. ` : `No other general-audience sub both doubled and reached 10%; the next-highest is r/${gen[0].sub} at ${pc(gen[0].post)} and the median sits at ${pc(gen[Math.floor(gen.length / 2)].post)}. `) +
+    (rea.length ? `The reaction subs, whose format is commentary on people and events, run higher by design: ${rea.map(r => `r/${r.sub} ${pc(r.post)}`).join(', ')}` +
+      (reaMoved.length ? `; ${reaMoved.map(r => `r/${r.sub}`).join(' and ')} also doubled since 2023. ` : `. `) : '') +
+    `Labels: gemma-4-31b for r/pics, r/mildlyinteresting, r/funny, r/interestingasfuck, r/Damnthatsinteresting and r/facepalm; the rest by TypeSafe Jev with low-confidence titles routed to gemma, a hybrid that agrees with gemma-with-reasoning on political-vs-not 97.7% of the time (gemma-fast alone: 96.2%).`);
 }
 
 /* what the politics was about: stacked columns per quarter, total height = political share */

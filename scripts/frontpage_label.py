@@ -26,6 +26,10 @@ SLICE = 40  # batches per queue rebuild
 
 
 def census_complete(cdir):
+    """True when every expected month exists, or when the census has finished
+    and given up on some (_done.json): nothing more will arrive either way."""
+    if (cdir / "_done.json").exists():
+        return True
     counts = json.loads((cdir / "_counts.json").read_text())
     now = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m")
     return all((cdir / f"{k}.jsonl.zst").exists() for k, v in counts.items() if v > 0 and k <= now)

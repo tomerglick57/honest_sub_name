@@ -55,12 +55,20 @@ def strided(months):
     return order
 
 
-def expected_counts(sub):
-    d = requests.get(f"{BASE}/api/time_series",
-                     params={"key": f"r/{sub}/posts/count", "precision": "month"},
-                     timeout=90).json()["data"]
-    return {dt.datetime.fromtimestamp(x["date"], dt.timezone.utc).strftime("%Y-%m"): x["value"]
-            for x in d}
+def expected_counts(sub, tries=4):
+    """The archive occasionally answers with an empty or HTML body; retry before giving up."""
+    for attempt in range(tries):
+        try:
+            d = requests.get(f"{BASE}/api/time_series",
+                             params={"key": f"r/{sub}/posts/count", "precision": "month"},
+                             timeout=90).json()["data"]
+            return {dt.datetime.fromtimestamp(x["date"], dt.timezone.utc).strftime("%Y-%m"): x["value"]
+                    for x in d}
+        except (requests.RequestException, ValueError, KeyError) as e:
+            if attempt == tries - 1:
+                raise
+            print(f"  time_series failed ({type(e).__name__}); retrying in {15 * (attempt + 1)}s", flush=True)
+            time.sleep(15 * (attempt + 1))
 
 
 def walk_month(api, sub, start, end):
@@ -89,6 +97,7 @@ def main():
 
     out_dir = pathlib.Path("data/census") / args.sub
     out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "_done.json").unlink(missing_ok=True)
     # _counts.json lists only the months in scope, so downstream completeness
     # checks (frontpage_label --follow) agree with what this run will produce
     exp = {k: v for k, v in expected_counts(args.sub).items() if k >= args.since}
@@ -139,12 +148,28 @@ def main():
                       f"{rec['secs']:.0f}s | total {done_posts[0]:,} posts in {el/60:.0f} min{flag}",
                       flush=True)
 
-    threads = [threading.Thread(target=worker) for _ in range(args.workers)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    print(f"census r/{args.sub} done", flush=True)
+    # Months that fail mid-walk (the archive's "Internal server error" comes in
+    # bursts) are retried in later passes after a pause; a rerun picks up the rest.
+    for pas in range(3):
+        threads = [threading.Thread(target=worker) for _ in range(args.workers)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        missing = [k for k in months if not (out_dir / f"{k}.jsonl.zst").exists()]
+        if not missing:
+            break
+        print(f"pass {pas + 1}: {len(missing)} months failed ({', '.join(missing[:6])}"
+              f"{'...' if len(missing) > 6 else ''}); pausing 3 min before retrying", flush=True)
+        time.sleep(180)
+        for k in strided(missing):
+            q.put(k)
+    missing = [k for k in months if not (out_dir / f"{k}.jsonl.zst").exists()]
+    # the marker lets followers (frontpage_label --follow) stop waiting even
+    # when months are missing; it is removed at the start of the next run
+    (out_dir / "_done.json").write_text(json.dumps({"finished": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
+                                                     "missing": missing}))
+    print(f"census r/{args.sub} done" + (f" with {len(missing)} months missing: {' '.join(missing)}" if missing else ""), flush=True)
 
 
 if __name__ == "__main__":
