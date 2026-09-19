@@ -776,25 +776,55 @@ distribution is) was binned against agreement with production on all
 answer when confident, send the rest to gemma. Re-scored on the 261
 validation rows the rule gives 97.7% / 87.0%, above gemma-fast alone.
 
-### Sub screening (2026-09-17): seven big general-audience subs, 2023 on
+### Sub screening (2026-09-17 to 09-19): 24 subs, 2023 on
 
 Same measure as the r/pics monitor (political share of each UTC day's top
-10 by final score), censused from 2023-01 with `scripts/screen_subs.sh`,
-`data/out/screen/<sub>.json`. Labels: gemma for the first four and the
-control, the Jev+gemma hybrid for the last three.
+10 by final score), censused from 2023-01 with `scripts/screen_subs.sh`
+(two lanes, gemma at one request each), `data/out/screen/<sub>.json`.
+Labels: gemma for r/mildlyinteresting, r/funny, r/interestingasfuck,
+r/Damnthatsinteresting and r/facepalm; the Jev+gemma hybrid for the rest.
+"Reaction" subs are those whose format is commentary on people and events.
 
 | sub | 2023 | 2024–Aug 2026 | peak month | L:R since 2024 |
 |---|---|---|---|---|
-| pics | 14.9% | 39.9% | 64.2% (2025-03) | 1152:139 |
-| facepalm | 15.2% | 35.4% | 57.4% (2025-10) | 1568:274 |
+| **pics** | 14.9% | 39.9% | 64.2% (2025-03) | 1152:139 |
 | interestingasfuck | 8.1% | 9.8% | 23.5% (2024-08) | 145:10 |
 | Damnthatsinteresting | 7.8% | 6.3% | 20.4% (2023-02) | 43:1 |
+| dankmemes | 3.9% | 5.7% | 11.7% (2024-06) | 87:48 |
 | OldSchoolCool | 6.0% | 4.0% | 10.0% (2023-02) | 25:2 |
+| WTF | 1.6% | 3.7% | 8.4% (2025-03) | 61:24 |
+| memes | 1.3% | 2.7% | 11.3% (2025-01) | 48:18 |
 | MadeMeSmile | 1.5% | 2.7% | 9.7% (2025-03) | 69:6 |
 | mildlyinteresting (control) | 2.5% | 2.6% | 5.5% (2022-03) | 14:4 |
+| mildlyinfuriating | 1.7% | 2.1% | 5.5% (2024-10) | 58:12 |
+| nextfuckinglevel | 1.4% | 1.6% | 4.5% (2025-03) | 20:5 |
+| BeAmazed | 1.0% | 1.3% | 2.6% (2024-01) | 16:3 |
 | funny | 1.2% | 1.1% | 2.9% (2024-12) | 15:5 |
-| aww | 1.3% | 0.1% | 16.6% (2023-06) | 1:0 |
+| Unexpected | 1.6% | 1.0% | 3.7% (2023-04) | 3:5 |
+| itookapicture | 0.1% | 0.3% | 3.3% (2025-06) | 0:0 |
+| oddlysatisfying | 0.2% | 0.2% | 1.0% (2026-04) | 5:0 |
+| aww | 1.3% | 0.1% | 16.6% (2023-06, API protest) | 1:0 |
+| EarthPorn | 0.0% | 0.0% | 0.3% (2025-03) | 1:1 |
+| *reaction:* WhitePeopleTwitter | 47.8% | 48.8% | 60.7% (2023-05) | 2356:339 |
+| *reaction:* PublicFreakout | 20.3% | 46.1% | 76.3% (2025-06) | 2287:161 |
+| *reaction:* clevercomebacks | 11.0% | 36.4% | 54.5% (2026-05) | 1564:302 |
+| *reaction:* facepalm | 15.2% | 35.4% | 57.4% (2025-10) | 1568:274 |
+| *reaction:* therewasanattempt | 7.1% | 35.3% | 55.0% (2025-09) | 940:375 |
+| *reaction:* MurderedByWords | 11.3% | 30.3% | 48.4% (2025-05) | 1338:249 |
+| *reaction:* TikTokCringe | 11.3% | 14.8% | 49.7% (2024-10) | 593:107 |
 
-Only r/facepalm moved with r/pics, and its format invites politics
-(captioned failures). The r/aww 2023-06 spike is the API-protest month.
-Rendered as the "screening" panel of the monitor page.
+Reading: of 17 general-audience image and video subs, none moved with
+r/pics; the next-highest since 2024 is r/interestingasfuck at 9.8% and the
+median sits at about 2%. r/WTF and r/memes doubled, but to 3-4%, with
+peaks in the Jan-Mar 2025 inauguration months. Of the 7 reaction subs,
+five doubled or better to 30-46% (r/WhitePeopleTwitter was already there
+in 2023; r/TikTokCringe rose only in the election month). r/pics thus left
+the general-audience group and now sits inside the reaction group, between
+r/facepalm and r/PublicFreakout. Every sub's front page leans left; the
+reaction subs run 5-8:1, r/pics 8:1. Rendered as the "screening" panel of
+the monitor page.
+
+Operational note: on the night of 09-17/18 the archive answered "Internal
+server error" for 22 r/memes months in one burst; the census gave up and
+the follower polled forever. census.py now retries in passes and writes
+`_done.json`; screen_subs.sh skips a sub whose census dies before counts.
