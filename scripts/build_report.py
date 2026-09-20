@@ -543,4 +543,6 @@ if(cw&&window.__pics_ts){
 
 out = pathlib.Path("data/out/honest_audit.html")
 out.write_text(page)
-print(f"wrote {out} ({len(page)//1024} KB, {len(rows)} ledger rows, {len(deep)} deep dives)")
+from honest_sub.site import publish  # noqa: E402
+site = publish(page, "honest_audit")
+print(f"wrote {out} and {site} ({len(page)//1024} KB, {len(rows)} ledger rows, {len(deep)} deep dives)")

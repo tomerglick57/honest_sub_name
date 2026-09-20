@@ -9,6 +9,7 @@ Usage: python3 scripts/pics_monitor.py [out.html]   (default data/out/pics_monit
 import datetime as dt, json, pathlib, statistics, sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
+from honest_sub.site import publish
 from honest_sub.slant import fisher_exact_two_sided
 
 SRC = pathlib.Path("data/out/pics_monitor.json")
@@ -153,8 +154,10 @@ def main():
     d["screen"] = screen_rows(d)
     d["kpi"] = kpis(d)
     blob = json.dumps(d, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
-    OUT.write_text(PAGE.replace("__DATA__", blob))
-    print(f"wrote {OUT} ({OUT.stat().st_size / 1024:.0f} KB); kpi={d['kpi']}")
+    page = PAGE.replace("__DATA__", blob)
+    OUT.write_text(page)
+    site = publish(page, "pics_monitor")
+    print(f"wrote {OUT} and {site} ({OUT.stat().st_size / 1024:.0f} KB); kpi={d['kpi']}")
 
 
 PAGE = r"""<title>The r/pics Contact Sheet</title>

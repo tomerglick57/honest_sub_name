@@ -198,6 +198,25 @@ Reaching 80% power for OR=2 needs roughly 200 sided posts per side. At the
 observed ~9% sided rate that is ~4,400 classifications per subreddit, about four
 hours each on this hardware.
 
+## Published pages
+
+The findings are two self-contained HTML pages, rebuilt by the report
+scripts and committed under `docs/` so GitHub Pages can serve them:
+
+| page | built by | source |
+|---|---|---|
+| `docs/pics_monitor.html` | `python3 scripts/pics_monitor.py` | `data/out/pics_monitor.json` |
+| `docs/honest_audit.html` | `python3 scripts/build_report.py` | `data/out/*.jsonl` |
+| `docs/index.html` | hand-written | links the two |
+
+Each script writes the page twice: the bare content to `data/out/` (what the
+Claude artifact host wraps) and the same content inside a document skeleton
+to `docs/` (`honest_sub/site.py`). Everything is inlined, so the pages also
+open from disk. To serve them: GitHub → Settings → Pages → Source "Deploy
+from a branch", branch `main`, folder `/docs`. After that every push that
+touches `docs/` redeploys within a minute, at
+`https://tomerglick57.github.io/honest_sub_name/`.
+
 ## Reproducibility
 
 `log_odds_prior` iterated a Python `set`. String hash randomisation varies per
