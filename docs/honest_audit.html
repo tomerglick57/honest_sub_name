@@ -3,7 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{margin:0;font:14px system-ui,sans-serif;background:#f6f6f4}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+.site-nav{font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;padding:10px var(--site-nav-pad,0);margin:0 0 6px;
+  display:flex;flex-wrap:wrap;gap:4px 18px;align-items:baseline;border-bottom:1px solid rgba(128,128,128,.25)}
+.site-nav a{color:inherit;opacity:.72;text-decoration:none}
+.site-nav a:hover,.site-nav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.site-nav a[aria-current]{opacity:1;font-weight:600}
+.site-nav .gh{margin-left:auto}
+:root{--site-nav-pad:20px}</style>
 <title>The Honest Subreddit Audit</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -127,6 +134,9 @@ footer{margin-top:3rem;border-top:1px solid var(--line);padding-top:1rem;font:40
 @media (prefers-reduced-motion: no-preference){ .row .detail{animation:fade .18s ease} }
 @keyframes fade{from{opacity:0}to{opacity:1}}
 </style>
+</head>
+<body>
+<nav class="site-nav" aria-label="Site"><a href="index.html">Home</a><a href="pics_monitor.html">r/pics monitor</a><a href="honest_audit.html" aria-current="page">Audit</a><a href="methodology.html">Methodology</a><a class="gh" href="https://github.com/tomerglick57/honest_sub_name">Source on GitHub</a></nav>
 <div class="wrap">
 <header class="top">
   <p class="kicker">Measured, not opined · 105 communities audited</p>
@@ -1773,4 +1783,5 @@ if(cw&&window.__pics_ts){
   svg.addEventListener('mouseleave',()=>tip.hidden=true);
 }
 </script>
+</body>
 </html>

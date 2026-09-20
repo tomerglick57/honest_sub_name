@@ -544,5 +544,5 @@ if(cw&&window.__pics_ts){
 out = pathlib.Path("data/out/honest_audit.html")
 out.write_text(page)
 from honest_sub.site import publish  # noqa: E402
-site = publish(page, "honest_audit")
+site = publish(page, "honest_audit", nav_pad="20px")  # this page pads .wrap, not body
 print(f"wrote {out} and {site} ({len(page)//1024} KB, {len(rows)} ledger rows, {len(deep)} deep dives)")

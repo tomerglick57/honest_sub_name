@@ -3,7 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<style>body{margin:0;font:14px system-ui,sans-serif;background:#f6f6f4}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+.site-nav{font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;padding:10px var(--site-nav-pad,0);margin:0 0 6px;
+  display:flex;flex-wrap:wrap;gap:4px 18px;align-items:baseline;border-bottom:1px solid rgba(128,128,128,.25)}
+.site-nav a{color:inherit;opacity:.72;text-decoration:none}
+.site-nav a:hover,.site-nav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.site-nav a[aria-current]{opacity:1;font-weight:600}
+.site-nav .gh{margin-left:auto}
+:root{--site-nav-pad:0}</style>
 <title>The r/pics Contact Sheet</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -120,7 +127,9 @@ th{color:var(--muted);font-weight:600;position:sticky;top:0;background:var(--pag
 @media (max-width:560px){.fig+.fig{padding-left:0}.fig{padding-right:0}.sheet-fig{padding:16px 12px 12px}}
 @media (prefers-reduced-motion:no-preference){.panel svg .s-main{transition:opacity .2s}}
 </style>
-
+</head>
+<body>
+<nav class="site-nav" aria-label="Site"><a href="index.html">Home</a><a href="pics_monitor.html" aria-current="page">r/pics monitor</a><a href="honest_audit.html">Audit</a><a href="methodology.html">Methodology</a><a class="gh" href="https://github.com/tomerglick57/honest_sub_name">Source on GitHub</a></nav>
 <main class="wrap">
   <header class="mast">
     <p class="edge" id="edge"></p>
@@ -759,5 +768,5 @@ if (D.vote && D.vote.deciles && D.vote.deciles['ADV-R']) {
 }
 })();
 </script>
-
+</body>
 </html>

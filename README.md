@@ -200,26 +200,26 @@ hours each on this hardware.
 
 ## Published pages
 
-The findings are two self-contained HTML pages, rebuilt by the report
-scripts and committed under `docs/` so GitHub Pages can serve them:
+The findings are a small static site under `docs/`, served by GitHub Pages
+at `https://tomerglick57.github.io/honest_sub_name/`. One command rebuilds
+all of it:
+
+    python3 scripts/build_site.py
 
 | page | built by | source |
 |---|---|---|
-| `docs/pics_monitor.html` | `python3 scripts/pics_monitor.py` | `data/out/pics_monitor.json` |
-| `docs/honest_audit.html` | `python3 scripts/build_report.py` | `data/out/*.jsonl` |
-| `docs/methodology.html` | `python3 scripts/build_methodology.py` | `docs/audience-methodology.md` |
-| `docs/index.html` | hand-written | links the three |
+| `docs/index.html` | `scripts/build_site.py` | headline figures from `data/out/pics_monitor.json` |
+| `docs/pics_monitor.html` | `scripts/pics_monitor.py` | `data/out/pics_monitor.json` |
+| `docs/honest_audit.html` | `scripts/build_report.py` | `data/out/*.jsonl` |
+| `docs/methodology.html` | `scripts/build_methodology.py` | `docs/audience-methodology.md` |
 
-The markdown methodology is the source of record; rebuild and commit its
-HTML view in the same commit as any change to it.
-
-Each script writes the page twice: the bare content to `data/out/` (what the
-Claude artifact host wraps) and the same content inside a document skeleton
-to `docs/` (`honest_sub/site.py`). Everything is inlined, so the pages also
-open from disk. To serve them: GitHub → Settings → Pages → Source "Deploy
-from a branch", branch `main`, folder `/docs`. After that every push that
-touches `docs/` redeploys within a minute, at
-`https://tomerglick57.github.io/honest_sub_name/`.
+`honest_sub/site.py` wraps each page's content in a document skeleton and
+the shared navigation, so the same content serves as a Claude artifact
+(bare, in `data/out/`) and as a site page. Everything is inlined, so the
+pages also open from disk. The markdown methodology is the source of
+record; rebuild and commit its HTML view in the same commit as any change
+to it. Pages is configured as Settings → Pages → "Deploy from a branch",
+`main`, `/docs`; every push touching `docs/` redeploys within a minute.
 
 ## Reproducibility
 

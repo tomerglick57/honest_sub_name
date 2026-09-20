@@ -3,43 +3,66 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+.site-nav{font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;padding:10px var(--site-nav-pad,0);margin:0 0 6px;
+  display:flex;flex-wrap:wrap;gap:4px 18px;align-items:baseline;border-bottom:1px solid rgba(128,128,128,.25)}
+.site-nav a{color:inherit;opacity:.72;text-decoration:none}
+.site-nav a:hover,.site-nav a:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.site-nav a[aria-current]{opacity:1;font-weight:600}
+.site-nav .gh{margin-left:auto}
+:root{--site-nav-pad:0}</style>
 <title>Honest Subreddit</title>
 <style>
-:root{color-scheme:light dark;--paper:#f6f7f5;--ink:#1b2420;--mut:#5c6660;--line:#d9ded9;--accent:#0f5d5a}
-@media (prefers-color-scheme:dark){:root{--paper:#151a18;--ink:#e8ebe8;--mut:#9aa39d;--line:#2c332f;--accent:#5fb8b2}}
-body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.55 Georgia,"Times New Roman",serif;padding-inline:20px;padding-block:48px 64px}
-main{max-width:64ch;margin:0 auto}
-h1{font:600 30px/1.2 system-ui,sans-serif;margin:0 0 6px}
-.lede{color:var(--mut);margin:0 0 36px}
-a.card{display:block;text-decoration:none;color:inherit;border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin-bottom:16px}
-a.card:hover{border-color:var(--accent)}
-a.card h2{font:600 19px/1.3 system-ui,sans-serif;margin:0 0 6px;color:var(--accent)}
-a.card p{margin:0;color:var(--mut);font-size:15.5px}
-.foot{margin-top:40px;color:var(--mut);font-size:14px}
-.foot a{color:var(--accent)}
+:root{color-scheme:light dark;--paper:#fbfbfa;--ink:#1c2220;--mut:#66706b;--line:#e1e5e2;--accent:#0f5d5a;--code:#eff2ef}
+@media (prefers-color-scheme:dark){:root{--paper:#141816;--ink:#e6e9e6;--mut:#98a19c;--line:#2b322e;--accent:#63bdb6;--code:#1f2623}}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;padding-inline:20px;padding-block:0 80px}
+.wrap{max-width:70ch;margin:0 auto}
+h1{font-size:28px;line-height:1.2;font-weight:650;letter-spacing:-.01em;margin:40px 0 10px}
+h2{font-size:21px;line-height:1.25;font-weight:650;margin:44px 0 10px}
+h3{font-size:17px;line-height:1.3;font-weight:650;margin:30px 0 6px}
+h4{font-size:16px;font-weight:650;margin:22px 0 4px}
+p,li{text-wrap:pretty}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+.mut{color:var(--mut)}
+code{font:.88em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:1px 5px;border-radius:4px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow-x:auto;font-size:13.5px;line-height:1.45}
+pre code{background:none;padding:0}
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-size:14.5px;line-height:1.4;min-width:100%}
+th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:600}
+blockquote{margin:12px 0;padding-left:14px;border-left:3px solid var(--line);color:var(--mut)}
+hr{border:0;border-top:1px solid var(--line);margin:36px 0}
+
+.lede{font-size:18px;color:var(--mut);margin:0 0 40px;max-width:60ch}
+.pages{list-style:none;padding:0;margin:0}
+.pages li{padding:18px 0;border-top:1px solid var(--line)}
+.pages li:last-child{border-bottom:1px solid var(--line)}
+.pages a.t{font-size:19px;font-weight:650;text-decoration:none}
+.pages a.t:hover{text-decoration:underline}
+.pages p{margin:4px 0 0;color:var(--mut)}
+.fig{display:flex;flex-wrap:wrap;gap:12px 36px;margin:0 0 40px}
+.fig div{min-width:120px}
+.fig b{display:block;font-size:30px;line-height:1.1;font-weight:650;letter-spacing:-.01em}
+.fig span{color:var(--mut);font-size:14px}
+.foot{margin-top:44px;color:var(--mut);font-size:14px}
 </style>
 </head>
 <body>
-<main>
+<nav class="site-nav" aria-label="Site"><a href="index.html" aria-current="page">Home</a><a href="pics_monitor.html">r/pics monitor</a><a href="honest_audit.html">Audit</a><a href="methodology.html">Methodology</a><a class="gh" href="https://github.com/tomerglick57/honest_sub_name">Source on GitHub</a></nav>
+<div class="wrap">
 <h1>Honest Subreddit</h1>
-<p class="lede">What a subreddit actually is, measured from every post: its content, its moderation, and what its voters put on top.</p>
-
-<a class="card" href="pics_monitor.html">
-<h2>The r/pics Contact Sheet</h2>
-<p>A monitor of the political share of r/pics’ front page since 2008: who posts it, who votes it up, what the moderators remove, what the comments say, and how 24 other big subs compare.</p>
-</a>
-
-<a class="card" href="honest_audit.html">
-<h2>The Honest Subreddit Audit</h2>
-<p>Every subreddit run through the funnel, with an honest name and description for each, and deep dives where the gap between the name and the content is largest.</p>
-</a>
-
-<a class="card" href="methodology.html">
-<h2>Methodology</h2>
-<p>How every number was measured: the pre-registered metric definitions, the validation gates, the model checks, and the execution log with its failures.</p>
-</a>
-
-<p class="foot">Source: <a href="https://github.com/tomerglick57/honest_sub_name">github.com/tomerglick57/honest_sub_name</a>. Data from the <a href="https://github.com/ArthurHeitmann/arctic_shift">Arctic Shift</a> archive.</p>
-</main>
+<p class="lede">What a subreddit actually is, measured from every post it ever had: its content, its moderation, and what its voters put on top.</p>
+<div class="fig"><div><b>41%</b><span>of r/pics’ front page was political<br>in the last 12 months</span></div><div><b>6%</b><span>in 2008–2015</span></div><div><b>138</b><span>consecutive weeks above the<br>old normal, since Jan 15, 2024</span></div></div>
+<ul class="pages">
+<li><a class="t" href="pics_monitor.html">The r/pics Contact Sheet</a>
+<p>A monitor of the political share of r/pics’ front page since 2008: who posts it, who votes it up, what the moderators remove, what the comments say, and how 24 other large subs compare.</p></li>
+<li><a class="t" href="honest_audit.html">The Honest Subreddit Audit</a>
+<p>Every subreddit run through the funnel, with an honest name and description for each, and deep dives where the gap between the name and the content is largest.</p></li>
+<li><a class="t" href="methodology.html">Methodology</a>
+<p>How every number was measured: the pre-registered metric definitions, the validation gates, the model checks, and the execution log with its failures.</p></li>
+</ul>
+<p class="foot">Figures updated Sep 2026. Data from the <a href="https://github.com/ArthurHeitmann/arctic_shift">Arctic Shift</a> archive of Reddit. Titles labeled by open models on a home network and by TypeSafe Jev; every label and gate is described on the methodology page. Source and data pipeline: <a href="https://github.com/tomerglick57/honest_sub_name">GitHub</a>.</p>
+</div>
 </body>
 </html>
