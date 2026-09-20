@@ -1,0 +1,1383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Audience Signal Methodology</title>
+<style>
+:root{color-scheme:light dark;--paper:#f6f7f5;--panel:#fff;--ink:#1b2420;--mut:#5c6660;--line:#d9ded9;--accent:#0f5d5a;--code:#eef1ee}
+@media (prefers-color-scheme:dark){:root{--paper:#151a18;--panel:#1c2220;--ink:#e8ebe8;--mut:#9aa39d;--line:#2c332f;--accent:#5fb8b2;--code:#222a27}}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16.5px/1.6 Georgia,"Times New Roman",serif;padding-inline:20px;padding-block:40px 80px}
+.wrap{max-width:76ch;margin:0 auto}
+nav.top{font:14px system-ui,sans-serif;color:var(--mut);margin-bottom:28px}
+nav.top a{color:var(--accent);text-decoration:none}
+h1{font:600 32px/1.2 system-ui,sans-serif;margin:0 0 8px}
+.meta{color:var(--mut);font:14px system-ui,sans-serif;margin:0 0 32px}
+h2{font:600 23px/1.25 system-ui,sans-serif;margin:48px 0 12px;padding-top:12px;border-top:1px solid var(--line)}
+h3{font:600 18px/1.3 system-ui,sans-serif;margin:32px 0 8px}
+h4{font:600 16px/1.3 system-ui,sans-serif;margin:24px 0 6px}
+p,li{text-wrap:pretty}
+a{color:var(--accent)}
+code{font:0.88em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:1px 5px;border-radius:4px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow-x:auto;font-size:14px;line-height:1.45}
+pre code{background:none;padding:0}
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font:14.5px/1.4 system-ui,sans-serif;min-width:100%}
+th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:600}
+blockquote{margin:12px 0;padding-left:14px;border-left:3px solid var(--line);color:var(--mut)}
+.toc{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin:0 0 36px;font:14.5px/1.5 system-ui,sans-serif}
+.toc b{display:block;margin-bottom:6px}
+.toc a{text-decoration:none;color:var(--accent)}
+.toc ul{margin:0;padding-left:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="top"><a href="index.html">Honest Subreddit</a> · <a href="pics_monitor.html">r/pics monitor</a> · <a href="honest_audit.html">audit</a></nav>
+<h1>Audience Signal Methodology</h1>
+<p class="meta">Rendered from <a href="audience-methodology.md">audience-methodology.md</a>, last changed 2026-09-19. Pre-registered metric definitions first, then the execution log in the order things actually happened, failures included.</p>
+<div class="toc"><b>Contents</b>
+<ul>
+<li><a href="#1-why-moderation-alone-is-not-enough">1. Why moderation alone is not enough</a></li>
+<li><a href="#2-who-the-audience-is-three-populations-mostly-disjoint">2. Who "the audience" is (three populations, mostly disjoint)</a></li>
+<li><a href="#3-gate-zero-score-provenance-blocks-everything-else">3. Gate zero: score provenance (blocks everything else)</a></li>
+<li><a href="#4-metrics">4. Metrics</a><ul>
+<li><a href="#m1-vote-asymmetry-among-survivors">M1 — Vote asymmetry among survivors</a></li>
+<li><a href="#m2-visibility-weighted-composition">M2 — Visibility-weighted composition</a></li>
+<li><a href="#m3-author-attrition-chilling-effect">M3 — Author attrition (chilling effect)</a></li>
+<li><a href="#m4-self-deletion-asymmetry">M4 — Self-deletion asymmetry</a></li>
+<li><a href="#m5-cross-sub-author-footprint">M5 — Cross-sub author footprint</a></li>
+<li><a href="#m6-comment-level-analysis-phase-2-separate-corpus">M6 — Comment-level analysis (phase 2, separate corpus)</a></li>
+</ul>
+</li>
+<li><a href="#5-statistical-discipline">5. Statistical discipline</a></li>
+<li><a href="#6-validation-gates-in-order-a-failed-gate-stops-the-line">6. Validation gates (in order; a failed gate stops the line)</a></li>
+<li><a href="#7-output-schema-change">7. Output schema change</a></li>
+<li><a href="#8-phasing-and-cost-measured-rates-1-000-labels-hr-150-posts-">8. Phasing and cost (measured rates: ~1,000 labels/hr, ~150 posts/sec harvest)</a></li>
+<li><a href="#9-known-limitations-stated-rather-than-solved">9. Known limitations, stated rather than solved</a></li>
+<li><a href="#10-execution-log-what-actually-happened">10. Execution log (what actually happened)</a><ul>
+<li><a href="#g0-passed-and-the-score-provenance-alarm-was-a-false-alarm">G0: passed, and the score-provenance alarm was a false alarm</a></li>
+<li><a href="#phase-1-results-m1-m2-survivors-only-banked-labels">Phase 1 results (M1 + M2, survivors only, banked labels)</a></li>
+<li><a href="#g1-failed-as-pre-registered-adjudicated-by-audit-metric-sema">G1: FAILED as pre-registered -- adjudicated by audit, metric semantics at fault</a></li>
+<li><a href="#required-fix-before-m1-is-trusted-on-in-group-subs">Required fix before M1 is trusted on in-group subs</a></li>
+<li><a href="#batch-of-2026-09-04-advocacy-vs-quotation-pass-executed">Batch of 2026-09-04: advocacy-vs-quotation pass executed</a></li>
+<li><a href="#batch-of-2026-09-04-second-window-g1-closed-m3-and-m4-execut">Batch of 2026-09-04 (second window): G1 closed; M3 and M4 executed</a></li>
+<li><a href="#final-batch-2026-09-05-all-queued-work-executed-project-goal">Final batch (2026-09-05): all queued work executed, project goal delivered</a></li>
+<li><a href="#night-of-2026-09-07-08-r-publicfreakout-and-r-pics-2025-26-t">Night of 2026-09-07/08: r/PublicFreakout and r/pics (2025-26) through the funnel</a></li>
+<li><a href="#crowd-co-activity-layer-2026-09-08-the-pics-agenda-change-ca">Crowd co-activity layer (2026-09-08): the pics agenda change came with new people</a></li>
+<li><a href="#model-migration-validated-2026-09-09-gemma-4-31b-qat-on-192-">Model migration validated (2026-09-09): gemma-4-31b-qat on 192.168.1.185</a></li>
+<li><a href="#r-pics-census-and-the-front-page-monitor-2026-09-12">r/pics census and the front-page monitor (2026-09-12)</a></li>
+<li><a href="#typesafe-jev-trial-and-the-hybrid-labeler-2026-09-17">TypeSafe Jev trial and the hybrid labeler (2026-09-17)</a></li>
+<li><a href="#sub-screening-2026-09-17-to-09-19-24-subs-2023-on">Sub screening (2026-09-17 to 09-19): 24 subs, 2023 on</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<p><em>Status: pre-registered 2026-08-29; G0 and Phase 1 executed 2026-08-30.</em>
+<em>Outcomes are recorded in §10 below -- including a failed gate. The metric
+definitions above are unchanged from pre-registration.</em></p>
+<h2 id="1-why-moderation-alone-is-not-enough">1. Why moderation alone is not enough</h2>
+<p>The slant analysis produced a result that a moderation-only lens cannot even
+express: r/conspiracy's <strong>content</strong> is 2.4:1 right-leaning (467 vs 197 sided
+posts), while its <strong>moderators</strong> remove right-leaning posts <em>harder</em> (39.2% vs
+26.9%, OR=0.57, p=0.0025). The community leans one way; the mod team pushes the
+other. Whatever "the character of the sub" means, it is not decided at one gate.</p>
+<p>A subreddit's visible character is produced by (at least) three filters in
+series, and they can point in opposite directions:</p>
+<pre><code>submitted ──► survives mods ──► gets visibility ──► gets engagement
+(posters)      (moderators)       (voters)            (commenters)
+</code></pre>
+<p>We have measured gate 2. This document specifies how to measure gates 3 and 4,
+plus the population behind gate 1 — and how to combine them into an honest
+description of <strong>what a visitor actually sees</strong>, which is the composition after
+all filters, not at any single one.</p>
+<p>It also fixes a vocabulary gap: today we cannot express "the mods are
+even-handed but the audience buries dissent", which is a real and common
+species of captured community — arguably more common than mod-driven capture,
+because voting is free and invisible.</p>
+<h2 id="2-who-the-audience-is-three-populations-mostly-disjoint">2. Who "the audience" is (three populations, mostly disjoint)</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>population</th>
+<th>observable?</th>
+<th>via</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>voters</strong></td>
+<td>only in aggregate (votes are anonymous)</td>
+<td><code>score</code>, <code>upvote_ratio</code> per post</td>
+</tr>
+<tr>
+<td><strong>commenters</strong></td>
+<td>yes, individually</td>
+<td>comment corpus (phase 2)</td>
+</tr>
+<tr>
+<td><strong>posters</strong></td>
+<td>yes, individually</td>
+<td><code>author</code> on posts</td>
+</tr>
+</tbody>
+</table></div>
+<p>Two consequences we must design around:</p>
+<ul>
+<li><strong>Votes on large subs come substantially from non-members</strong> browsing r/all
+  and r/popular. Vote-based metrics therefore measure a broader, more casual
+  population than the community proper. For a sub like r/conspiracy the voters
+  may partly be outsiders reacting. We cannot separate insider from outsider
+  votes — this is a stated limitation, not a solvable one.</li>
+<li>The honest <em>name</em> should be about what determines visibility — the voters —
+  because they decide what a visitor sees. Poster-population metrics (M5)
+  characterise <em>who is there</em> instead. These answer different questions and are
+  reported as separate fields, never blended.</li>
+</ul>
+<h2 id="3-gate-zero-score-provenance-blocks-everything-else">3. Gate zero: score provenance (blocks everything else)</h2>
+<p>Measured on the current corpus: 42% of r/science posts sit at <code>score == 1</code>,
+57% of r/conspiracy posts at <code>upvote_ratio == 1.0</code>, medians of 3–4 against
+means of 62–709. Arctic Shift snapshots posts shortly after creation, so a
+large fraction of scores were captured <strong>before voting happened</strong>. A post at
+score 1 may be ignored or may simply have been photographed five minutes after
+birth; the current data cannot tell, because our harvester drops
+<code>retrieved_on</code> (the API <em>does</em> return it — it is in the 112-field full
+response).</p>
+<p><strong>No audience metric may be computed until snapshot age is verified.</strong></p>
+<p>Decision procedure (G0):</p>
+<ol>
+<li>Probe: fetch ~500 full posts per target sub, keep <code>retrieved_on</code>, and plot
+   the distribution of <code>retrieved_on - created_utc</code>.</li>
+<li>If a usable fraction (&gt;60%) was snapshotted ≥24h after creation → add
+   <code>retrieved_on</code> to <code>POST_KEEP</code>, re-harvest, and filter to mature snapshots.</li>
+<li>Otherwise → re-fetch final scores live for exactly the post IDs we analyse.
+   Reddit's <code>/api/info</code> accepts 100 fullnames per request (~10k posts ≈ 100
+   requests), but requires OAuth app credentials the user must create. Fall
+   back to checking whether Arctic Shift offers re-scanned score data.</li>
+</ol>
+<p>Preference: live re-fetch even if (2) passes, because it yields <em>final</em> scores
+for removed and surviving posts alike at a known common timepoint.</p>
+<h2 id="4-metrics">4. Metrics</h2>
+<p>Naming: M1–M5 reuse the existing post corpus and (for the three slant subs)
+the ~11k stance labels already banked. M6 requires a new corpus.</p>
+<h3 id="m1-vote-asymmetry-among-survivors">M1 — Vote asymmetry among survivors</h3>
+<p><em>Do voters treat the two sides of the axis differently, where the mods let both
+stand?</em></p>
+<ul>
+<li><strong>Unit:</strong> surviving (non-removed) post with a stance label A or B.</li>
+<li><strong>Computation:</strong> score → percentile within its sub × month cohort (traffic
+  grows over time; raw scores are incomparable across years). Compare percentile
+  distributions of A vs B with Mann-Whitney U; report rank-biserial effect size.</li>
+<li><strong>Survivorship rule:</strong> <em>only</em> survivors. Removed posts stop accruing votes;
+  including them re-discovers the removal effect and mislabels it an audience
+  effect.</li>
+<li><strong>Secondary signal:</strong> <code>upvote_ratio</code> as a controversy measure, restricted to
+  posts with <code>score ≥ 10</code> (the ratio is quantised and unreliable at low vote
+  counts).</li>
+<li><strong>Free lunch:</strong> for r/conspiracy, r/Conservative, r/politics the labels are
+  already on disk — e.g. r/conspiracy has ≈144 surviving A and ≈284 surviving B
+  posts. M1 costs zero new classification there.</li>
+</ul>
+<h3 id="m2-visibility-weighted-composition">M2 — Visibility-weighted composition</h3>
+<p><em>What does the front page actually look like?</em></p>
+<p>Raw composition weights a score-1 post equally with a score-20k post; visitors
+experience neither equally. Two estimators, reported side by side:</p>
+<ul>
+<li>stance mix among the <strong>top decile</strong> of posts by within-month percentile
+  (crude but assumption-free);</li>
+<li>stance mix weighted by <code>log10(1 + score)</code> (Reddit's hot ranking is
+  logarithmic in score, so this approximates time-integrated visibility without
+  simulating the decay term).</li>
+</ul>
+<p>The gap between raw composition (what gets posted) and visibility-weighted
+composition (what gets seen) is itself a finding: it is the audience's
+editorial line, expressed in votes.</p>
+<h3 id="m3-author-attrition-chilling-effect">M3 — Author attrition (chilling effect)</h3>
+<p><em>Do dissenters stop coming back?</em></p>
+<p>The nastiest failure mode of gates 2–3: if hostile reception drives one side's
+authors away, the sub grows <strong>more</strong> homogeneous while moderation grows
+<strong>lighter</strong> — every per-post metric improves as capture deepens.</p>
+<ul>
+<li><strong>Unit:</strong> (author, stance-labelled post) pair; author ≠ <code>[deleted]</code>.</li>
+<li><strong>Outcome:</strong> does the author post again in the same sub within 90 days?</li>
+<li><strong>Comparison:</strong> within stance, across reception (removed / bottom-quartile
+  percentile / top-half); then across stances at matched reception. The
+  double split matters: bad posts drive anyone away, so the signal is
+  <em>differential</em> attrition at the <em>same</em> reception level.</li>
+<li><strong>Confound to state up front:</strong> we observe leaving the sub, not leaving
+  Reddit. An author who quits Reddit entirely inflates attrition everywhere.
+  Mitigation: check the author's site-wide activity via Arctic Shift before
+  counting them as chilled (they must post <em>somewhere</em> in the window).</li>
+</ul>
+<h3 id="m4-self-deletion-asymmetry">M4 — Self-deletion asymmetry</h3>
+<p><code>removed_by_category == "deleted"</code> (author withdrew the post) is currently
+discarded. Asymmetric self-deletion across stance is a pile-on proxy — people
+deleting under hostile reception. Rates are meaningless alone (people delete
+for many reasons); only the A-vs-B asymmetry, with the same Fisher +
+permutation machinery as the moderation analysis, is reportable.</p>
+<h3 id="m5-cross-sub-author-footprint">M5 — Cross-sub author footprint</h3>
+<p><em>Who is this community, independent of what they write here?</em></p>
+<p>Take the top ~300 non-bot posters of a target sub; for each, fetch their
+posting distribution across all of Reddit (<code>/api/users/interactions/subreddits</code>
+— <strong>endpoint contract must be verified before building</strong>, we have never called
+it). Aggregate into: which other subs are over-represented among this sub's
+core posters, versus the same statistic for a size-matched neutral baseline
+sub. If r/conspiracy's core posters are disproportionately also r/Conservative
+posters, that is an audience fingerprint no careful on-sub posting hides.</p>
+<ul>
+<li>Cheap: no classification, pure counting.</li>
+<li>Bot filter first: exclude <code>AutoModerator</code>, accounts with &gt;X posts/day, and
+  the sub's own mod list where retrievable.</li>
+<li><strong>Ethics constraint (hard):</strong> aggregate statistics only. No per-user data in
+  any output, ever. The published artefact is "N% of core posters are also
+  active in r/X", never a list of names.</li>
+</ul>
+<h3 id="m6-comment-level-analysis-phase-2-separate-corpus">M6 — Comment-level analysis (phase 2, separate corpus)</h3>
+<p>The biggest blind spot: a sub can allow dissenting posts and delete dissenting
+<em>comments</em> — cheaper, less visible, probably where most real gatekeeping
+lives. Everything above has a comment analogue: comment removal asymmetry,
+comment vote asymmetry, commenter attrition.</p>
+<p>Scoped as a separate project deliberately: r/conspiracy alone has 44.2M
+comments against 1.85M posts (24×), and comment stance classification at our
+measured ~1,000 labels/hr does not scale to that without aggressive sampling
+design (per-thread sampling under stance-labelled posts is the likely shape).</p>
+<h2 id="5-statistical-discipline">5. Statistical discipline</h2>
+<ul>
+<li>Scores are extremely heavy-tailed (median 4, mean 709 on r/science). <strong>No
+  means, no t-tests.</strong> Rank-based everything; percentile-normalise within
+  sub × month before any cross-time pooling.</li>
+<li>Every asymmetry claim ships with: effect size, exact test p, permutation p
+  (5,000 shuffles of the stance labels), and achieved power at the observed
+  group sizes for a target effect (OR=2 or rank-biserial 0.2).</li>
+<li><strong>Nulls are only reportable at ≥80% achieved power</strong>, and are then stated as
+  "no asymmetry detected at power P", never as "even-handed". Non-differential
+  label noise (measured: 89% stability) biases toward null; findings are
+  conservative, nulls are weak.</li>
+<li>Multiple comparisons: the family is (subs × metrics). With 3 subs × 3
+  primary metrics (M1, M3, M4) that is 9 tests → Benjamini-Hochberg at
+  q=0.05 for discovery, with the headline claims re-checked against Bonferroni.
+  M2 and M5 are descriptive (no hypothesis test), reported with CIs only.</li>
+<li>This document is the pre-registration: metrics, thresholds, and controls are
+  fixed <em>before</em> the runs. Anything exploratory that comes up later gets
+  labelled exploratory in the output.</li>
+</ul>
+<h2 id="6-validation-gates-in-order-a-failed-gate-stops-the-line">6. Validation gates (in order; a failed gate stops the line)</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>gate</th>
+<th>test</th>
+<th>pass condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G0</td>
+<td>score snapshot age probe</td>
+<td>≥60% mature snapshots, or live re-fetch working</td>
+</tr>
+<tr>
+<td>G1</td>
+<td>positive control, M1 on r/Conservative</td>
+<td>voters bury left-leaning content (direction known a priori), q&lt;0.05</td>
+</tr>
+<tr>
+<td>G2</td>
+<td>permutation control</td>
+<td>shuffled labels kill every significant result</td>
+</tr>
+<tr>
+<td>G3</td>
+<td>label stability</td>
+<td>already measured at 89%/3 passes; re-verify only if the classifier or prompt changes</td>
+</tr>
+<tr>
+<td>G4</td>
+<td>power</td>
+<td>≥80% for the target effect before any null is interpreted</td>
+</tr>
+</tbody>
+</table></div>
+<p>G1 is the same logic that validated the moderation pipeline: a flaired-only
+partisan sub's audience <em>must</em> show the expected vote asymmetry. If it does
+not, the metric — not the sub — is broken.</p>
+<h2 id="7-output-schema-change">7. Output schema change</h2>
+<p>The lesson of r/conspiracy is that collapsing gates into one "bias" number
+produces confidently wrong labels. The per-sub record gains separate,
+never-blended fields:</p>
+<pre><code class="language-json">{
+  &quot;content_lean&quot;:        {&quot;ratio&quot;: &quot;...&quot;, &quot;n_A&quot;: 0, &quot;n_B&quot;: 0},
+  &quot;moderation_asymmetry&quot;:{&quot;odds_ratio&quot;: 0, &quot;p&quot;: 0, &quot;direction&quot;: &quot;...&quot;},
+  &quot;audience_asymmetry&quot;:  {&quot;effect&quot;: 0, &quot;p&quot;: 0, &quot;direction&quot;: &quot;...&quot;, &quot;power&quot;: 0},
+  &quot;visibility_mix&quot;:      {&quot;raw&quot;: &quot;...&quot;, &quot;weighted&quot;: &quot;...&quot;},
+  &quot;attrition&quot;:           {&quot;differential&quot;: 0, &quot;p&quot;: 0},
+  &quot;funnel_summary&quot;:      &quot;one sentence per gate, sourced from the fields above&quot;
+}
+</code></pre>
+<p>The honest description then <em>cites the gates separately</em> ("posted content leans
+X; moderators trim Y harder; voters amplify Z"), and the LLM keeps the job it
+is good at — phrasing — while every load-bearing number stays measured.</p>
+<h2 id="8-phasing-and-cost-measured-rates-1-000-labels-hr-150-posts-">8. Phasing and cost (measured rates: ~1,000 labels/hr, ~150 posts/sec harvest)</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>phase</th>
+<th>work</th>
+<th>new classification</th>
+<th>wall-clock</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>G0 probe + <code>retrieved_on</code> fix (+ optional live re-fetch)</td>
+<td>none</td>
+<td>hours</td>
+</tr>
+<tr>
+<td>1</td>
+<td>M1 + M2 + M4 on the three slant subs</td>
+<td>none (labels banked)</td>
+<td>&lt; 1 day</td>
+</tr>
+<tr>
+<td>2</td>
+<td>M3 attrition (needs author post-history lookups)</td>
+<td>none</td>
+<td>~1 day</td>
+</tr>
+<tr>
+<td>3</td>
+<td>M5 footprint (verify endpoint, then build)</td>
+<td>none</td>
+<td>~1 day</td>
+</tr>
+<tr>
+<td>4</td>
+<td>new target subs through the full funnel</td>
+<td>~6k labels/sub ≈ 6h/sub</td>
+<td>per sub</td>
+</tr>
+<tr>
+<td>5</td>
+<td>M6 comments</td>
+<td>new corpus + sampling design</td>
+<td>separate project</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="9-known-limitations-stated-rather-than-solved">9. Known limitations, stated rather than solved</h2>
+<ul>
+<li>Voter identity is unobservable; insider/outsider votes cannot be separated.</li>
+<li>Brigading events (r/all spikes, external links to threads) inject foreign
+  votes; month-level percentile normalisation dampens but does not remove this.</li>
+<li><code>author == "[deleted]"</code> posts are invisible to M3/M5.</li>
+<li>Vote fuzzing: Reddit perturbs displayed scores anti-bot; harmless at rank
+  level, another reason not to use raw values.</li>
+<li>Engagement ≠ endorsement: comment counts are excluded from all asymmetry
+  metrics for exactly this reason; they return only in M6 where stance is known.</li>
+</ul>
+<h2 id="10-execution-log-what-actually-happened">10. Execution log (what actually happened)</h2>
+<h3 id="g0-passed-and-the-score-provenance-alarm-was-a-false-alarm">G0: passed, and the score-provenance alarm was a false alarm</h3>
+<p><code>retrieved_on</code> is ~36 seconds after creation for 100% of probed posts -- but
+scores are <strong>age-stationary</strong>: posts 2 days old show the same medians and
+thousands-scale maxima as posts 3 years old (r/politics medians 20-75 at every
+age bucket). Arctic Shift refreshes scores after ingestion; <code>retrieved_on</code>
+records only first contact. The low medians that triggered the alarm (42% of
+r/science at score==1) are organic -- most posts genuinely die unvoted. Scores
+are usable as-is. A live OAuth spot-check remains optional belt-and-braces
+(anonymous <code>/api/info</code> returns 403).</p>
+<h3 id="phase-1-results-m1-m2-survivors-only-banked-labels">Phase 1 results (M1 + M2, survivors only, banked labels)</h3>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>sub</th>
+<th>surviving A:B</th>
+<th>median pctile A / B</th>
+<th>rank-biserial</th>
+<th>MW p</th>
+<th>visibility mix (A)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>r/politics</td>
+<td>827 : 144</td>
+<td>0.71 / <strong>0.13</strong></td>
+<td><strong>0.77</strong></td>
+<td>2.8e-49</td>
+<td>85% raw -&gt; <strong>96%</strong> weighted</td>
+</tr>
+<tr>
+<td>r/conspiracy</td>
+<td>144 : 284</td>
+<td>0.455 / 0.455</td>
+<td>-0.05</td>
+<td>0.42</td>
+<td>34% raw -&gt; 33% weighted</td>
+</tr>
+<tr>
+<td>r/Conservative</td>
+<td>39 : 299</td>
+<td>0.50 / 0.52</td>
+<td>0.02</td>
+<td>0.87</td>
+<td>--</td>
+</tr>
+</tbody>
+</table></div>
+<p>r/politics: the audience buries surviving right-leaning content massively
+(top decile: 142 left vs <strong>1</strong> right). Moderation and voting push the same
+direction; the visible sub is ~96% left after both gates.</p>
+<p>r/conspiracy: voters are neutral. Its right-lean is composition-driven --
+posted 2.4:1 right, mods trim right harder, voters amplify neither side.</p>
+<h3 id="g1-failed-as-pre-registered-adjudicated-by-audit-metric-sema">G1: FAILED as pre-registered -- adjudicated by audit, metric semantics at fault</h3>
+<p>r/Conservative's audience showed no burial of "left" survivors (p=0.87).
+Reading the titles resolves it: the top-upvoted "A-labelled" survivors are
+right-wing posters <strong>quoting the left to mock it</strong> ("Biden: 'MAGA Republicans
+are a threat'", "Keith Olbermann says RFK Jr. must withdraw"). The classifier
+labels the stance the <em>title text expresses</em> -- correct per its instructions,
+wrong for this use. <strong>Title-stance != poster-stance under quotation</strong>, and the
+error concentrates precisely where the vote test needs precision: in-group
+spaces, where out-group quotation is a dominant genre.</p>
+<p>Consequences:
+- The r/politics result stands: its B-labelled survivors were audited earlier
+  and are genuine right-framed content, and the metric demonstrably detects
+  vote asymmetry (it is not broken).
+- The r/Conservative <em>moderation</em> OR (2.67) is if anything an underestimate:
+  some "surviving A" is mock-quotation rather than genuine left content, so
+  genuine-left survival is rarer than measured.
+- The r/conspiracy vote-null carries unquantified quotation contamination;
+  direction unknown.</p>
+<h3 id="required-fix-before-m1-is-trusted-on-in-group-subs">Required fix before M1 is trusted on in-group subs</h3>
+<p>Add a poster-stance pass: classify whether the title <em>advocates</em> the stance or
+<em>quotes/showcases the out-group</em> (label Q), and run vote asymmetry on advocacy
+posts only. Small job (~340 surviving sided posts for r/Conservative); needs
+its own validation batch before use, since irony detection is harder than
+stance detection. G1 is then re-run on advocacy-only labels; the gate remains
+failed until it passes.</p>
+<h3 id="batch-of-2026-09-04-advocacy-vs-quotation-pass-executed">Batch of 2026-09-04: advocacy-vs-quotation pass executed</h3>
+<p>Probe gate 16/16. All 3,077 sided titles q-labelled, plus ~2,400 additional
+r/Conservative stance labels to grow the left-advocacy survivor sample
+(70 ADV-A survivors, up from ~28). Finished in 5h48m against a 7h budget.</p>
+<p><strong>Every moderation OR is robust to dropping quotation posts</strong> (all-sided -&gt;
+advocacy-only): r/Conservative 2.67 -&gt; 2.68, r/conspiracy 0.571 -&gt; 0.58,
+r/politics 0.404 -&gt; 0.399. The moderation findings were not quotation
+artifacts.</p>
+<p><strong>r/politics vote asymmetry survives at full strength</strong> on advocacy-only
+(rank-biserial 0.757, p=8.7e-38). <strong>r/conspiracy's vote-null persists</strong> at
+usable n (131 vs 257, rb=-0.03): its audience genuinely amplifies neither
+side; the sub's right-lean remains composition-driven at every gate.</p>
+<p><strong>G1 after the fix: direction correct, marginally underpowered.</strong> Removing
+quotation posts flipped r/Conservative's vote effect from +0.02 to -0.138
+(left advocacy ranks lower, as a partisan sub's audience must behave), p=0.059
+at n_A=70. The contamination hypothesis is confirmed directionally; the gate
+formally remains open until p&lt;0.05, which at the observed effect size needs
+roughly 3x the ADV-A survivor sample (~4-5h more Conservative classification).</p>
+<p>Genre map note: QUO share among surviving left-labelled posts in
+r/Conservative is 28.6% overall but concentrates among top-scored posts
+(the audited top-10 were mostly quotation) -- quotation is not just noise, it
+is the sub's preferred way of engaging the out-group, and it earns upvotes
+there.</p>
+<h3 id="batch-of-2026-09-04-second-window-g1-closed-m3-and-m4-execut">Batch of 2026-09-04 (second window): G1 closed; M3 and M4 executed</h3>
+<p><strong>G1 PASSES.</strong> Survivors-only expansion tripled the left-advocacy sample
+(70 -&gt; 151): rank-biserial -0.115, MW p=0.019, perm p=0.02. All
+pre-registered validation gates are now closed.</p>
+<p><strong>M4 (self-deletion):</strong> r/Conservative's author-deleted posts are 30% left vs
+11% left among kept -- OR=3.27, p=3.3e-05: left posters withdraw their own
+posts at ~3x the odds, the predicted pile-on signature. r/politics shows no
+asymmetry (p=0.39). r/conspiracy's deleted arm was cut by the deadline and
+remains to run (~20 min GPU).</p>
+<p><strong>M3 (attrition, site-active authors only, 90-day window):</strong>
+- r/Conservative, removed stratum: left advocates return 42% vs right 68%
+  (p=1.1e-08) -- removal drives the two sides away at very different rates.
+- r/conspiracy, KEPT stratum: left 69% vs right 84% (p=0.0019). The first
+  asymmetry found at any gate in r/conspiracy: neither mods nor voters enforce
+  its lean, but left advocates disproportionately do not come back even when
+  untouched. Composition-driven lean with a retention mechanism.
+- r/politics, kept stratum: right advocates churn more (78% vs 91%, p=1.5e-4).</p>
+<p><strong>Stated limitation (pre-specified confound, uncontrolled):</strong> returning to the
+sub conflates chilled regulars with drive-by visitors who never intended to
+stay; cross-posting partisans are plausibly more often visitors. The fix is a
+prior-activity stratification (author active in-sub before the post), one
+additional API pass per author, not yet run. M3 directions are therefore
+suggestive; magnitudes should not be quoted until that control exists.</p>
+<p><strong>Process note:</strong> the deadline correctly stopped M4 mid-stage, but the
+analysis script crashed on the absent conspiracy file and, because it wrote
+its report only at the end, an already-computed G1 PASS reached only the log.
+Fixed: missing stage files now yield empty sections, and the run's data was
+never at risk (all label writes are incremental).</p>
+<h3 id="final-batch-2026-09-05-all-queued-work-executed-project-goal">Final batch (2026-09-05): all queued work executed, project goal delivered</h3>
+<p><strong>M3 visitor control (pre-specified):</strong> changes conclusions, as designed.
+r/Conservative's removal-chilling survives strongly among established regulars
+(left return 57% vs 82%, p=4.7e-06; left advocates are also 29% visitors vs
+12% for right). r/politics survives (kept right regulars 82% vs 93%,
+p=6.4e-4). r/conspiracy attenuates: kept-stratum regulars 76% vs 86%, p=0.03
+-- direction holds, downgraded to suggestive; the earlier p=0.0019 was partly
+drive-by visitors.</p>
+<p><strong>M4 completed:</strong> r/conspiracy shows no significant self-deletion asymmetry
+(OR=0.52, p=0.12). r/politics is marginal (right posters self-delete at ~2x
+odds, p=0.047) -- suggestive only.</p>
+<p><strong>Deliverable:</strong> the Honest Subreddit Audit page -- 100 ranked ledger entries
+(honest name, description, measured gap score, removal evidence) plus
+four-gate funnel profiles for r/politics, r/conspiracy, r/Conservative with
+visitor-controlled retention. Deep-dive names were set deterministically after
+the model twice echoed the sub's own name despite instruction.</p>
+<h3 id="night-of-2026-09-07-08-r-publicfreakout-and-r-pics-2025-26-t">Night of 2026-09-07/08: r/PublicFreakout and r/pics (2025-26) through the funnel</h3>
+<p><strong>r/PublicFreakout</strong> ("people freaking out in public", no political mandate):
+92% of posts are not politically sided; the sided 8% run 5.9:1 LEFT (242 vs
+41), the most lopsided composition audited. Moderation is direction-neutral
+(OR=0.61, p=0.20). Voters bury surviving right advocacy (median percentile
+.17 vs .64, rb=0.63, p=1.8e-05), and right-advocacy regulars quit even when
+their posts are kept (47% vs 86% return, p=0.001, visitor shares equal at
+22%). The character mechanism mirrors r/politics -- audience-enforced -- under
+a name that promises no politics at all. Label audit: one visible mislabel in
+14 sampled advocacy titles, consistent with measured noise.</p>
+<p><strong>r/pics, time-resolved</strong> (the audit's first era-split entry): the pooled
+verdict ("no gap") is right for 2023-24 and wrong after. In 2025 removal
+tripled to ~46% and removals now exceed keeps; political subjects rose from
+3% to 33% of the top score decile by 2026 (keyword screen) while explicit
+advocacy stayed rare (1.8% of posts, 49L:18R). Removal is direction-neutral
+(p=0.78). The politicization is topical and vote-driven; the sided sample is
+too thin (18 R) for any directional stance claim, and none is made.</p>
+<p><strong>Methodology lesson recorded:</strong> a pooled multi-year verdict can be clean
+while the sub changes underneath it. Time-resolved checks (removal trajectory,
+visibility-weighted topic share by year) belong in the standard pipeline.</p>
+<h3 id="crowd-co-activity-layer-2026-09-08-the-pics-agenda-change-ca">Crowd co-activity layer (2026-09-08): the pics agenda change came with new people</h3>
+<p>New metric M7: per half-year, the share of a sub's sampled posters (80/bucket)
+also posting that half-year in a disclosed political-subreddit set, reported as
+the EXCESS over a genre-matched baseline crowd (r/aww, harvested to 2008).
+Title-independent by construction.</p>
+<p>Validated behaviours: the baseline absorbs the small-Reddit era (2008-09 raw
+shares of 25-58% on BOTH subs net to ~zero excess); the 2023 John Oliver
+protest -- an in-community event -- correctly leaves no trace.</p>
+<p>Finding: single buckets are noise-limited (band +/-7.5pt at n=80) and only
+2025H1 clears it alone, but pooled over 2024H2-2026H1 the pics crowd is
+politically co-active at 10.0% vs the baseline's 1.9% (OR 5.8, p=1.4e-05).
+An auditability flaw was found and fixed by re-query: the runner stored only
+a boolean, so positives were re-checked for WHICH sub triggered them --
+70% are explicit political subs, and excluding the two borderline members
+of the set (PublicFreakout, conspiracy) sharpens the result to 8.1% vs 1.2%
+(OR 7.0, p=4e-05). Store the triggering subs, not a boolean, in future runs.</p>
+<p>Verdict revision recorded honestly: the interim read (pics half only)
+leaned "same crowd, new votes"; the completed baseline flipped it. The 2024-26
+front-page politicization is accompanied by a measurable influx of politically
+active posters -- the wedge and the crowd arrived together.</p>
+<h3 id="model-migration-validated-2026-09-09-gemma-4-31b-qat-on-192-">Model migration validated (2026-09-09): gemma-4-31b-qat on 192.168.1.185</h3>
+<p>All three gates re-run on the new user-designated backend, same protocols as
+the 26B baseline:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>gate</th>
+<th>26B (local)</th>
+<th>31B (remote)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q-pass probe (16 titles)</td>
+<td>16/16</td>
+<td><strong>16/16</strong></td>
+</tr>
+<tr>
+<td>stance stability, 3 passes x 36 titles</td>
+<td>89% identical</td>
+<td><strong>100% identical</strong></td>
+</tr>
+<tr>
+<td>positive control left-share (Conservative / democrats)</td>
+<td>22% / 94%</td>
+<td><strong>12% / 94%</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The 31B is cleaner on every axis: perfectly stable labels at temperature 0.6,
+wider control separation (82pt vs 72pt), and no temperature-0 reasoning loops.
+Cost: ~370-620 labels/hr vs ~1000/hr (the control batches ran at ~390/hr under
+concurrent load). Existing measured results remain 26B-labeled; the two models
+agree at the validation level, so cross-model pooling of labels is acceptable
+for composition counts but re-labeling is preferred for any new asymmetry
+test that pools old and new data.</p>
+<h3 id="r-pics-census-and-the-front-page-monitor-2026-09-12">r/pics census and the front-page monitor (2026-09-12)</h3>
+<p><strong>Why the earlier r/pics series was replaced.</strong> <code>harvest_subreddit</code> walks
+each window ascending and stops at its quota, so every stratum is the opening
+hours of its window: 37,000 of the 45,000 historical r/pics posts fall in the
+first week of a quarter, most within hours of midnight on Jan 1 / Apr 1 /
+Jul 1 / Oct 1. The "top decile" in <code>pics_timeseries.json</code> was the top of a few
+hundred early-morning posts, not the front page. The "twelve flat years, then
+the 2024 split" reading rests on that sample and does not survive the census.</p>
+<p><strong>Census.</strong> <code>scripts/census.py</code> walked every r/pics post, 2008-01 to 2026-09:
+8,281,820 posts in 163 minutes (two workers, <code>limit=auto</code>), every completed
+month within 0.13% of Arctic Shift's own monthly count.</p>
+<p><strong>M8, front-page political share.</strong> Each UTC day's ten highest-scoring posts
+by final score, removed posts included, title labeled O / P / L / R by
+gemma-4-31b-qat on the LAN host with reasoning off (<code>honest_sub/topic.py</code>,
+<code>scripts/frontpage_label.py</code>). Ranking within the day cancels traffic growth
+and score inflation. Submissions are a seeded random 100 posts per month drawn
+from the census (<code>honest_sub/frontpage.py</code>, shared by labeler and analysis).</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>label check</th>
+<th>result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>two passes, temperature 0</td>
+<td>79/80 identical</td>
+</tr>
+<tr>
+<td>261 stratified titles re-labeled with reasoning on</td>
+<td>political-vs-not 96.2% (κ 0.91; 92.0% on 2024–26), four-way 86.2% (κ 0.81)</td>
+</tr>
+<tr>
+<td>side disagreements</td>
+<td>fast labels err toward R (8 R→L vs 2 L→R): the L:R imbalance is understated</td>
+</tr>
+<tr>
+<td>r/pics' own "Politics" flair on front-page posts</td>
+<td>79% labeled political; misses are image-only captions ("Mittens", "This is America") and people in the news after the model's training</td>
+</tr>
+</tbody>
+</table></div>
+<p>Titles only, never images: every share is a floor, most of all in the latest
+months, where the model does not recognise the names.</p>
+<p><strong>M9, comment index.</strong> Share of ALL comments matching a fixed 21-term US
+political vocabulary, counted server-side with Arctic Shift's aggregate
+endpoint over ~125M r/pics comments, against r/mildlyinteresting. Two archive
+behaviours had to be engineered around, both now in the README: windows not
+starting at UTC midnight return HTTP 200 with zero-count buckets (the first
+run undercounted about tenfold: 154 recorded vs 1,533 true for
+mildlyinteresting 2024-01), and election-week days time out even as one-day
+windows, so they are counted in hour-aligned 6-hour pieces (verified exact:
+10+3+171+3 = 187). Verification: 12 months, six per sub, 2008–2024, recounted
+day by day: 12/12 exact.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>period</th>
+<th>r/pics comments naming US politics</th>
+<th>× baseline</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2009–2015</td>
+<td>0.3–0.7%</td>
+<td>2.5–4×</td>
+</tr>
+<tr>
+<td>2016</td>
+<td>3.0%</td>
+<td>6×</td>
+</tr>
+<tr>
+<td>2017–2019</td>
+<td>2.5–4.0%</td>
+<td>~10×</td>
+</tr>
+<tr>
+<td>2020</td>
+<td>5.0%</td>
+<td>13×</td>
+</tr>
+<tr>
+<td>2022–2023</td>
+<td>2.8–3.0%</td>
+<td>6–7×</td>
+</tr>
+<tr>
+<td>2024</td>
+<td>9.0% (Jul–Nov 2024: 10.6–14.3%)</td>
+<td>17×</td>
+</tr>
+<tr>
+<td>2025 / 2026</td>
+<td>7.9% / 5.5%</td>
+<td>14× / 13×</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Moderation, from the census.</strong> Removal is recorded in the archive from 2019.
+Moderator removal of all submissions: 13% (2020), 24% (2022), 13% (2023), 15%
+(2024), 41% (2025), 47% (2026). Locked posts 34% and 44% in 2025–26, mostly
+alongside removal. Author self-deletion is not comparable across eras (23–34%
+in 2020–22, under 5% after 2023: a change in archive capture, not behaviour)
+and is not used.</p>
+<p><strong>Front page, final</strong> (every day 2008-01 to 2026-09; 90,148 titles labeled,
+0 failed batches). A typical 2008–2015 month was 4.8% political (10th–90th
+percentile 2.9–8.2%); years ran 3.7–6.3% in 2009–2016. Waves of 8–19% a year
+followed in 2017–2023; then 34% in 2024, 44% in 2025, 41% in 2026 to date.
+Every week since 15 January 2024, 138 in a row, has been above the 2008–2015
+90th-percentile month; before 2016 a typical year had about eight such weeks.
+Submissions went from ~4.6% political (2008–15) to 9–13% (2024–26): what gets
+posted rose about 2×, what reaches the top about 7×, so the audience's lift
+grew from ~1.2× to ~4×.</p>
+<p>Sides: 2,121 left-sided vs 322 right-sided front-page posts overall; 186:77
+before 2016, 1,155:139 since 2024.</p>
+<p>Cross-checks independent of the model: a keyword screen and r/pics' own
+"Politics" flair on the same front-page posts track the model's series month
+by month (common peaks Aug 2024, Feb–Mar 2025, Jan 2026) and confirm a real
+easing in Aug–Sep 2026 (model 23% / keyword 11% / flair 9% in August). The
+John Oliver protest (June–July 2023) does not leak in: 22 of 385 front-page
+titles naming him were labeled political.</p>
+<p>Front-page removal by moderators, political vs other: no difference in
+2020–21; 15.8% vs 9.3% pooled over 2022–23 (OR 1.83, Fisher p=6.8e-10); from
+2024 almost no front-page removals are recorded for either (0.1–1.2%) while
+all-submission removal reached 41–47%. That cross-era drop may be archive
+capture (late removals recorded less for recent posts), so only within-year
+comparisons are reported.</p>
+<p><strong>Newcomers vs regulars (tenure from the census).</strong> Every author's first
+r/pics post is known back to 2008, so each front-page post splits into
+newcomer (first r/pics post under a year earlier, the first included) or
+regular (a year or more); deleted accounts are left out, 2008 skipped.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>political share of front-page posts</th>
+<th>2010–15</th>
+<th>2016–23</th>
+<th>2024 on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>newcomers</td>
+<td>4.5%</td>
+<td>12.9%</td>
+<td>42.9%</td>
+</tr>
+<tr>
+<td>regulars</td>
+<td>4.8%</td>
+<td>12.5%</td>
+<td>35.4%</td>
+</tr>
+</tbody>
+</table></div>
+<p>Newcomers' submissions since 2024: 12.8% political vs 8.2% for regulars.
+Posters who first appeared in 2024 or later made 69% of the 2025–26 political
+front page while being 63% of the front page. Shift-share, 2010–15 to
+2024–26 (+34.9 points): newcomers becoming more political +23.2, regulars
++10.2, change in who reaches the front page +1.8. Read together with the crowd
+co-activity layer (M7): the change arrived with new, politically active
+people and pulled the existing crowd along; it was not only an influx.</p>
+<p><strong>Correlates of the change (census + labels, 2026-09-13).</strong>
+- Vote premium: political front-page posts scored the same as others in
+  2010–15 (median 5,095 vs 5,047 in 2015) and ~3× in 2025–26 (29,951 vs
+  10,431; 16,598 vs 6,112). They hold the day's #1 slot 50% of days since
+  2024 (6% before 2016), against 36% of slots 4–10.
+- Homogenising audience: upvote ratio on political front-page posts 0.85
+  (2020–21) → 0.94 (2026); other posts flat at 0.92–0.96.
+- Specialist posters: among authors with ≥3 front-page posts, ≥80%-political
+  accounts went 0 (2010–15) → 31 → 154 (2024–26), supplying 22% of the
+  political front page; never-political multi-posters 594 → 135. Political
+  front-page posters now return within 90 days more than others (61% vs
+  53%); in earlier eras equal or less.
+- Structure: submissions ~90k/month (2012) → 10–16k (2024–26); comments per
+  post 9 → 36–46. Monthly front-page share vs log submissions r=−0.49, vs
+  log comments/post r=+0.73 (2016 on).
+- Comment index and front page share: r=0.84 same month, no lead/lag at
+  monthly resolution.
+- Event weeks: 2020-06-03 74% (receded); 2024-07-08 57%, 2024-08-05 56%,
+  2025-02-05 64%, 2026-01-22 67% (troughs since 2024 stay &gt;30%).
+- Co-activity (M7): at n=80 the 2026H2 bucket read 1.2% vs 3.8% and looked
+  like the crowd receding; at n=400 (below) it is 3.2% vs 2.0%. Noise, as
+  the band predicted.
+- No signal: posting hour (identical UTC profiles) and image host. Mods lock
+  political threads 2–4× more often (5–6% vs 2–3%).</p>
+<p><strong>Subject of the political front page</strong> (<code>honest_sub/subject.py</code>,
+<code>scripts/subject_label.py</code>; all 9,249 political front-page titles, 2 concurrent
+requests, 0 failed batches). Primary subject as share of political front-page
+posts:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th></th>
+<th>Trump admin</th>
+<th>immigration/ICE</th>
+<th>elections/politicians</th>
+<th>protests</th>
+<th>abroad</th>
+<th>policy/social</th>
+<th>history/other</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2009–15</td>
+<td>1%</td>
+<td>1%</td>
+<td>14%</td>
+<td>9%</td>
+<td>39%</td>
+<td>15%</td>
+<td>20%</td>
+</tr>
+<tr>
+<td>2016–23</td>
+<td>9%</td>
+<td>1%</td>
+<td>18%</td>
+<td>15%</td>
+<td>30%</td>
+<td>15%</td>
+<td>13%</td>
+</tr>
+<tr>
+<td>2024</td>
+<td>24%</td>
+<td>1%</td>
+<td>27%</td>
+<td>9%</td>
+<td>20%</td>
+<td>8%</td>
+<td>11%</td>
+</tr>
+<tr>
+<td>2025</td>
+<td>27%</td>
+<td>3%</td>
+<td>12%</td>
+<td>21%</td>
+<td>18%</td>
+<td>6%</td>
+<td>14%</td>
+</tr>
+<tr>
+<td>2026</td>
+<td>17%</td>
+<td>8%</td>
+<td>9%</td>
+<td>22%</td>
+<td>30%</td>
+<td>6%</td>
+<td>8%</td>
+</tr>
+</tbody>
+</table></div>
+<p>As a share of the whole front page every subject grew (abroad 3.8% → 8–12%,
+protests 1.9% → 9%, Trump 1.1% → 7–12%), so it is not a single-issue
+takeover on the surface. But the top-scoring "protests" titles are anti-ICE
+and anti-Trump demonstrations and the top "abroad" titles are the Iran war,
+Israel/Gaza and Greenland, i.e. the administration's foreign policy: read
+by what the photo is against rather than its nominal subject, most of the
+2025–26 political front page concerns one administration. Policy/social
+issues (healthcare, prices, guns) did not grow.</p>
+<p><strong>Control sub (2026-09-14).</strong> Same census + front-page labeling on
+r/mildlyinteresting from 2022-01 (<code>census.py --since</code>, 490,745 posts, 16,710
+titles, 0 failed batches; <code>scripts/control_series.py</code>):</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th></th>
+<th>r/pics front page</th>
+<th>r/mildlyinteresting front page</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2022–23</td>
+<td>14.9%</td>
+<td>3.1%</td>
+</tr>
+<tr>
+<td>2024</td>
+<td>34.2%</td>
+<td>2.5%</td>
+</tr>
+<tr>
+<td>2025</td>
+<td>44.4%</td>
+<td>2.9%</td>
+</tr>
+<tr>
+<td>2026 (to Aug)</td>
+<td>41.6%</td>
+<td>2.1%</td>
+</tr>
+</tbody>
+</table></div>
+<p>The control did not move (its sided posts run 31:10 left over the period, at
+a rate of ~0.5 per month). The front-page change is r/pics' own, not a
+Reddit-wide drift in what image subs elevate, matching the comment index
+(control comments flat at 0.4–0.5%).</p>
+<p><strong>M7 at 400 authors per bucket, 2023–26</strong> (<code>crowd_run.py --per-bucket 400
+--since 2023H1</code>; the seeded shuffle extends the n=80 sample; triggering subs
+now stored). Share of sampled posters also posting in the political set that
+half-year, r/pics vs r/aww:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>bucket</th>
+<th>r/pics</th>
+<th>r/aww</th>
+<th>excess</th>
+<th>Fisher p</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2023H1</td>
+<td>7.0%</td>
+<td>3.0%</td>
+<td>+4.0</td>
+<td>0.014</td>
+</tr>
+<tr>
+<td>2023H2</td>
+<td>4.8%</td>
+<td>4.8%</td>
+<td>0.0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2024H1</td>
+<td>6.0%</td>
+<td>2.0%</td>
+<td>+4.0</td>
+<td>0.006</td>
+</tr>
+<tr>
+<td>2024H2</td>
+<td>9.0%</td>
+<td>1.5%</td>
+<td>+7.5</td>
+<td>1.6e-06</td>
+</tr>
+<tr>
+<td>2025H1</td>
+<td>11.8%</td>
+<td>3.0%</td>
+<td>+8.8</td>
+<td>2.3e-06</td>
+</tr>
+<tr>
+<td>2025H2</td>
+<td>5.2%</td>
+<td>1.5%</td>
+<td>+3.8</td>
+<td>0.005</td>
+</tr>
+<tr>
+<td>2026H1</td>
+<td>7.2%</td>
+<td>1.5%</td>
+<td>+5.8</td>
+<td>8e-05</td>
+</tr>
+<tr>
+<td>2026H2</td>
+<td>3.2%</td>
+<td>2.0%</td>
+<td>+1.2</td>
+<td>0.38</td>
+</tr>
+</tbody>
+</table></div>
+<p>Yearly odds ratios: 2023 1.5 (p=0.08), 2024 4.6, 2025 4.0, 2026 3.1 (all
+p&lt;3e-4). The excess is present in every half-year from 2024H1, the same
+half-year the front page broke, and largest in 2024H2–2025H1 when the front
+page was at its peak; across the eight half-years the excess tracks the
+front-page political share at r=+0.74. Triggering subs are r/politics, r/politicalhumor,
+r/democrats and r/conservative in roughly that order; excluding the two
+borderline members (publicfreakout, conspiracy) leaves the pattern intact.</p>
+<p><strong>M1 for r/pics (2026-09-15): vote asymmetry between sides.</strong>
+<code>scripts/vote_asym_label.py</code> + <code>vote_asym_analyze.py</code>: 2,500 seeded random
+surviving submissions per month, 2025-09..2026-08 (30,000 titles, stance
+O/P/L/R; the quotation pass on the 934 sided titles ran on the fast settings
+after passing the probe set 16/16). Score percentile within month among all
+survivors of that month (census).</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>comparison</th>
+<th>n</th>
+<th>median percentile</th>
+<th>rank-biserial</th>
+<th>p</th>
+<th>perm p</th>
+<th>top decile</th>
+<th>power (rb 0.2)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>political vs not</td>
+<td>3,288 vs 26,712</td>
+<td>.83 vs .48</td>
+<td>+0.35</td>
+<td>3.5e-231</td>
+<td>2e-4</td>
+<td>37% vs 7%</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>advocacy left vs right</td>
+<td>722 vs 147</td>
+<td>.85 vs .65</td>
+<td><strong>+0.27</strong></td>
+<td>3.5e-7</td>
+<td>2e-4</td>
+<td>41% vs 28%</td>
+<td>97%</td>
+</tr>
+</tbody>
+</table></div>
+<p>Right advocacy is lifted less than left, not buried: its median sits at the
+65th percentile, above non-political photos (48th). Upvote ratios are equal
+(.93 vs .94, score&gt;=10), so the gap is fewer upvotes rather than more
+downvotes. Composition among surviving submissions is 4.9:1 left (775:159);
+the vote premium takes the front page to ~8:1. Compared with the other
+audited subs (r/politics rb 0.76, r/PublicFreakout 0.63, r/Conservative
+−0.12 against the left), r/pics' audience asymmetry is real but moderate;
+its front-page tilt is mostly composition, amplified by votes.</p>
+<p>Deliverable: <code>scripts/pics_monitor.py</code> builds the contact-sheet monitor page
+(<code>data/out/pics_monitor.html</code>) from <code>scripts/pics_monitor_data.py</code>.</p>
+<h3 id="typesafe-jev-trial-and-the-hybrid-labeler-2026-09-17">TypeSafe Jev trial and the hybrid labeler (2026-09-17)</h3>
+<p>TypeSafe's Jev (<code>jev-1.13.0</code>, https://docs.typesafe.ai) answers typed
+questions with a probability distribution instead of text. The front-page
+rubric was posed as one Choice question per title (<code>honest_sub/topic_jev.py</code>)
+and run on 1,011 r/pics front-page titles: the 261-title stratified
+validation set, where gemma-4-31b ran both fast (production) and with
+reasoning, plus a seeded random 750 (<code>scripts/typesafe_trial.py</code>).</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th></th>
+<th>Jev</th>
+<th>gemma-4-31b on the LAN host</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>throughput</td>
+<td>25 titles/s at 8 concurrent</td>
+<td>~2/s at 4 concurrent</td>
+</tr>
+<tr>
+<td>cost, all 90,148 production labels</td>
+<td>$1.92 (508 input tokens/title)</td>
+<td>host time, ~13 h</td>
+</tr>
+</tbody>
+</table></div>
+<p>Agreement on the 261 validation titles; the reference is gemma with
+reasoning, the configuration that passed the project's gates. No human
+truth exists for these rows.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>labeler</th>
+<th>political vs not</th>
+<th>4-way O/P/L/R</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>gemma fast (production)</td>
+<td>96.2% (κ 0.91)</td>
+<td>86.2% (κ 0.81)</td>
+</tr>
+<tr>
+<td>Jev, one Choice question</td>
+<td>88.9% (κ 0.76)</td>
+<td>69.3% (κ 0.56)</td>
+</tr>
+<tr>
+<td>Jev, noul "political?" + Choice side</td>
+<td>83.9%</td>
+<td>69.0%</td>
+</tr>
+<tr>
+<td>jev-preview, one Choice</td>
+<td>88.1%</td>
+<td>67.8%</td>
+</tr>
+<tr>
+<td>hybrid: Jev if confidence ≥ 0.8, else gemma fast</td>
+<td>97.7%</td>
+<td>87.0%</td>
+</tr>
+</tbody>
+</table></div>
+<p>Jev alone under-detects stance: 36 of 261 titles are L for gemma and P for
+Jev, and on the random 750 it found 32 L / 16 R against production's 92 /
+44. The political share by era survives (2008-15 4.3% vs 6.4%, 2016-23
+16.6% vs 16.6%, 2024-26 32.1% vs 27.5%, gemma vs Jev), flair recall is
+89/108 vs 92/108. Its confidence is informative: at ≥ 0.8 (78% of titles)
+Jev agrees with production 96%, below that ~50%. Where Jev disagrees with
+both gemma passes, several look like gemma over-reaching ("Save the
+Planet", "Pollution in China is out of control" labeled political).</p>
+<p>Decision: <code>scripts/frontpage_label.py --labeler hybrid</code> sends every title
+to Jev first and only the sub-threshold rows to gemma; each row records
+which model decided (<code>m</code>) and Jev's confidence. Used from this date for the
+sub screening (r/MadeMeSmile from its 6,900th label, r/OldSchoolCool,
+r/aww); r/pics production labels stay all-gemma. On a non-political sub
+Jev decides ~95% of titles, so the LAN host sees a twentieth of the load.</p>
+<h4 id="how-the-trial-was-built-and-read">How the trial was built and read</h4>
+<p><strong>No ground truth.</strong> Nobody hand-labeled these titles, so the trial
+measures agreement between labelers, not correctness. The reference is
+gemma-4-31b with reasoning on, because that configuration passed the
+project's original gates (§10, 2026-09-09). Where Jev disagrees with both
+gemma passes, the titles are printed for a human to judge rather than
+scored either way; several of them read as gemma over-reaching.</p>
+<p><strong>Two samples, two jobs.</strong></p>
+<ul>
+<li><em>Stratified validation set, 261 titles.</em> Stratified sampling splits the
+  population into groups first and draws a fixed number from each, instead
+  of drawing at random from the whole. The groups are era (2008–15,
+  2016–23, 2024–26) crossed with production label (O, P, L, R), twelve
+  cells, up to 25 titles each (<code>scripts/frontpage_validate.py</code>, seed
+  <code>validate-v1</code>). A plain random 261 would be ~80% "not political" and hold
+  perhaps ten right-leaning titles, too few to test that class. The cost of
+  stratifying is that the set no longer reflects the real label mix, so it
+  is right for per-class agreement and wrong for estimating shares.</li>
+<li><em>Random set, 750 titles.</em> A seeded random draw of front-page titles with
+  production labels only (seed <code>typesafe-trial-v1</code>). Its mix is true to the
+  front page, so it carries the era-by-era political share, flair recall,
+  the label-mix comparison, and the cost and latency figures.</li>
+</ul>
+<p><strong>Two views of the label.</strong> The <em>4-way</em> label is the full O/P/L/R: not
+political, political with no US partisan side, left-leaning, right-leaning.
+<em>Political vs not</em> collapses P, L and R into one class. The binary drives
+the load-bearing indicator (front-page political share); the 4-way drives
+the secondary panels (left–right split, vote asymmetry, subjects). A
+labeler can be good at one and weak at the other, and Jev is exactly that.</p>
+<p><strong>Kappa.</strong> Cohen's kappa is agreement corrected for chance: two labelers
+that both say O 80% of the time agree often by luck, so kappa subtracts the
+agreement their label mixes would produce on their own and rescales, 1.0 =
+perfect, 0 = chance. Rough reading: &gt; 0.8 near-identical, 0.6–0.8
+substantial, 0.4–0.6 moderate. Gemma fast vs gemma reasoning: 0.91 binary,
+0.81 4-way. Jev vs the reference: 0.76 binary, 0.56 4-way.</p>
+<p><strong>Prompt and model variants tried.</strong> <em>noul+side</em> follows TypeSafe's advice
+to split a question into atomic parts: a "noul" (their yes/no primitive,
+returning a probability the statement is true) asked "is this political?",
+a separate Choice asked "which side, if any", and the two were combined
+into O/P/L/R with the noul thresholded at 0.5. It scored below the single
+Choice question (83.9% vs 88.9% binary) because the noul called more titles
+political than gemma does. <em>jev-preview</em> is TypeSafe's newest-build alias
+next to the stable <em>jev-latest</em>; both resolved to 1.13.0 and it scored the
+same within noise. Each variant cost about a cent, so ruling them out was
+cheap.</p>
+<p><strong>Confidence gating.</strong> Jev's confidence (how peaked its probability
+distribution is) was binned against agreement with production on all
+1,011 rows: ≥ 0.8 (78% of titles) agreed 96%; every bin below agreed
+~45–60%. That step function is what makes the hybrid work: keep Jev's
+answer when confident, send the rest to gemma. Re-scored on the 261
+validation rows the rule gives 97.7% / 87.0%, above gemma-fast alone.</p>
+<h3 id="sub-screening-2026-09-17-to-09-19-24-subs-2023-on">Sub screening (2026-09-17 to 09-19): 24 subs, 2023 on</h3>
+<p>Same measure as the r/pics monitor (political share of each UTC day's top
+10 by final score), censused from 2023-01 with <code>scripts/screen_subs.sh</code>
+(two lanes, gemma at one request each), <code>data/out/screen/&lt;sub&gt;.json</code>.
+Labels: gemma for r/mildlyinteresting, r/funny, r/interestingasfuck,
+r/Damnthatsinteresting and r/facepalm; the Jev+gemma hybrid for the rest.
+"Reaction" subs are those whose format is commentary on people and events.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>sub</th>
+<th>2023</th>
+<th>2024–Aug 2026</th>
+<th>peak month</th>
+<th>L:R since 2024</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>pics</strong></td>
+<td>14.9%</td>
+<td>39.9%</td>
+<td>64.2% (2025-03)</td>
+<td>1152:139</td>
+</tr>
+<tr>
+<td>interestingasfuck</td>
+<td>8.1%</td>
+<td>9.8%</td>
+<td>23.5% (2024-08)</td>
+<td>145:10</td>
+</tr>
+<tr>
+<td>Damnthatsinteresting</td>
+<td>7.8%</td>
+<td>6.3%</td>
+<td>20.4% (2023-02)</td>
+<td>43:1</td>
+</tr>
+<tr>
+<td>dankmemes</td>
+<td>3.9%</td>
+<td>5.7%</td>
+<td>11.7% (2024-06)</td>
+<td>87:48</td>
+</tr>
+<tr>
+<td>OldSchoolCool</td>
+<td>6.0%</td>
+<td>4.0%</td>
+<td>10.0% (2023-02)</td>
+<td>25:2</td>
+</tr>
+<tr>
+<td>WTF</td>
+<td>1.6%</td>
+<td>3.7%</td>
+<td>8.4% (2025-03)</td>
+<td>61:24</td>
+</tr>
+<tr>
+<td>memes</td>
+<td>1.3%</td>
+<td>2.7%</td>
+<td>11.3% (2025-01)</td>
+<td>48:18</td>
+</tr>
+<tr>
+<td>MadeMeSmile</td>
+<td>1.5%</td>
+<td>2.7%</td>
+<td>9.7% (2025-03)</td>
+<td>69:6</td>
+</tr>
+<tr>
+<td>mildlyinteresting (control)</td>
+<td>2.5%</td>
+<td>2.6%</td>
+<td>5.5% (2022-03)</td>
+<td>14:4</td>
+</tr>
+<tr>
+<td>mildlyinfuriating</td>
+<td>1.7%</td>
+<td>2.1%</td>
+<td>5.5% (2024-10)</td>
+<td>58:12</td>
+</tr>
+<tr>
+<td>nextfuckinglevel</td>
+<td>1.4%</td>
+<td>1.6%</td>
+<td>4.5% (2025-03)</td>
+<td>20:5</td>
+</tr>
+<tr>
+<td>BeAmazed</td>
+<td>1.0%</td>
+<td>1.3%</td>
+<td>2.6% (2024-01)</td>
+<td>16:3</td>
+</tr>
+<tr>
+<td>funny</td>
+<td>1.2%</td>
+<td>1.1%</td>
+<td>2.9% (2024-12)</td>
+<td>15:5</td>
+</tr>
+<tr>
+<td>Unexpected</td>
+<td>1.6%</td>
+<td>1.0%</td>
+<td>3.7% (2023-04)</td>
+<td>3:5</td>
+</tr>
+<tr>
+<td>itookapicture</td>
+<td>0.1%</td>
+<td>0.3%</td>
+<td>3.3% (2025-06)</td>
+<td>0:0</td>
+</tr>
+<tr>
+<td>oddlysatisfying</td>
+<td>0.2%</td>
+<td>0.2%</td>
+<td>1.0% (2026-04)</td>
+<td>5:0</td>
+</tr>
+<tr>
+<td>aww</td>
+<td>1.3%</td>
+<td>0.1%</td>
+<td>16.6% (2023-06, API protest)</td>
+<td>1:0</td>
+</tr>
+<tr>
+<td>EarthPorn</td>
+<td>0.0%</td>
+<td>0.0%</td>
+<td>0.3% (2025-03)</td>
+<td>1:1</td>
+</tr>
+<tr>
+<td><em>reaction:</em> WhitePeopleTwitter</td>
+<td>47.8%</td>
+<td>48.8%</td>
+<td>60.7% (2023-05)</td>
+<td>2356:339</td>
+</tr>
+<tr>
+<td><em>reaction:</em> PublicFreakout</td>
+<td>20.3%</td>
+<td>46.1%</td>
+<td>76.3% (2025-06)</td>
+<td>2287:161</td>
+</tr>
+<tr>
+<td><em>reaction:</em> clevercomebacks</td>
+<td>11.0%</td>
+<td>36.4%</td>
+<td>54.5% (2026-05)</td>
+<td>1564:302</td>
+</tr>
+<tr>
+<td><em>reaction:</em> facepalm</td>
+<td>15.2%</td>
+<td>35.4%</td>
+<td>57.4% (2025-10)</td>
+<td>1568:274</td>
+</tr>
+<tr>
+<td><em>reaction:</em> therewasanattempt</td>
+<td>7.1%</td>
+<td>35.3%</td>
+<td>55.0% (2025-09)</td>
+<td>940:375</td>
+</tr>
+<tr>
+<td><em>reaction:</em> MurderedByWords</td>
+<td>11.3%</td>
+<td>30.3%</td>
+<td>48.4% (2025-05)</td>
+<td>1338:249</td>
+</tr>
+<tr>
+<td><em>reaction:</em> TikTokCringe</td>
+<td>11.3%</td>
+<td>14.8%</td>
+<td>49.7% (2024-10)</td>
+<td>593:107</td>
+</tr>
+</tbody>
+</table></div>
+<p>Reading: of 17 general-audience image and video subs, none moved with
+r/pics; the next-highest since 2024 is r/interestingasfuck at 9.8% and the
+median sits at about 2%. r/WTF and r/memes doubled, but to 3-4%, with
+peaks in the Jan-Mar 2025 inauguration months. Of the 7 reaction subs,
+five doubled or better to 30-46% (r/WhitePeopleTwitter was already there
+in 2023; r/TikTokCringe rose only in the election month). r/pics thus left
+the general-audience group and now sits inside the reaction group, between
+r/facepalm and r/PublicFreakout. Every sub's front page leans left; the
+reaction subs run 5-8:1, r/pics 8:1. Rendered as the "screening" panel of
+the monitor page.</p>
+<p>Operational note: on the night of 09-17/18 the archive answered "Internal
+server error" for 22 r/memes months in one burst; the census gave up and
+the follower polled forever. census.py now retries in passes and writes
+<code>_done.json</code>; screen_subs.sh skips a sub whose census dies before counts.</p>
+</div>
+</body>
+</html>

@@ -207,7 +207,11 @@ scripts and committed under `docs/` so GitHub Pages can serve them:
 |---|---|---|
 | `docs/pics_monitor.html` | `python3 scripts/pics_monitor.py` | `data/out/pics_monitor.json` |
 | `docs/honest_audit.html` | `python3 scripts/build_report.py` | `data/out/*.jsonl` |
-| `docs/index.html` | hand-written | links the two |
+| `docs/methodology.html` | `python3 scripts/build_methodology.py` | `docs/audience-methodology.md` |
+| `docs/index.html` | hand-written | links the three |
+
+The markdown methodology is the source of record; rebuild and commit its
+HTML view in the same commit as any change to it.
 
 Each script writes the page twice: the bare content to `data/out/` (what the
 Claude artifact host wraps) and the same content inside a document skeleton
